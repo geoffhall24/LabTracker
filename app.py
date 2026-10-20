@@ -5,6 +5,7 @@ import pandas as pd
 import random
 import shutil
 import sqlite3
+import sys
 import streamlit as st
 
 # --- DIRECTORY SETUP FOR PHOTOS, FORMS & CERTS ---
@@ -1182,92 +1183,93 @@ elif action == "Sync Emails from Returns":
   col_sync1, col_sync2 = st.columns(2)
   with col_sync1:
     if st.button("🔍 1. Scan Outlook Inbox & Stage Matches"):
-      try:
-        import pythoncom
-        import win32com.client
-
-        pythoncom.CoInitialize()
-        outlook = win32com.client.Dispatch("Outlook.Application").GetNamespace(
-            "MAPI"
+      if sys.platform != "win32":
+        st.warning(
+            "Outlook synchronization requires Windows and Outlook desktop app."
         )
-        inbox = outlook.GetDefaultFolder(6)
-        messages = inbox.Items
-        messages.Sort("[ReceivedTime]", True)
+      else:
+        try:
+          import pythoncom
+          import win32com.client
 
-        conn = sqlite3.connect(DB_FILE)
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT id, rga_number, notification_number, customer_name, notes"
-            " FROM queue"
-        )
-        rows = cursor.fetchall()
-        conn.close()
+          pythoncom.CoInitialize()
+          outlook = win32com.client.Dispatch(
+              "Outlook.Application"
+          ).GetNamespace("MAPI")
+          inbox = outlook.GetDefaultFolder(6)
+          messages = inbox.Items
+          messages.Sort("[ReceivedTime]", True)
 
-        staged_list = []
-        scan_count = 0
+          conn = sqlite3.connect(DB_FILE)
+          cursor = conn.cursor()
+          cursor.execute(
+              "SELECT id, rga_number, notification_number, customer_name,"
+              " notes FROM queue"
+          )
+          rows = cursor.fetchall()
+          conn.close()
 
-        for message in messages:
-          if scan_count > 150:
-            break
-          try:
-            sender = getattr(message, "SenderName", "")
-            subject = getattr(message, "Subject", "")
-            body = getattr(message, "Body", "")
-            received_time = str(getattr(message, "ReceivedTime", ""))
+          staged_list = []
+          scan_count = 0
 
-            if (
-                "return" in sender.lower()
-                or "return" in subject.lower()
-                or "returns" in subject.lower()
-            ):
-              for db_id, rga, notif, cust, existing_notes in rows:
-                rga_str = str(rga).strip()
-                notif_str = str(notif).strip()
+          for message in messages:
+            if scan_count > 150:
+              break
+            try:
+              sender = getattr(message, "SenderName", "")
+              subject = getattr(message, "Subject", "")
+              body = getattr(message, "Body", "")
+              received_time = str(getattr(message, "ReceivedTime", ""))
 
-                if (
-                    rga_str
-                    and rga_str != "nan"
-                    and rga_str != ""
-                    and rga_str in subject
-                ) or (
-                    notif_str
-                    and notif_str != "nan"
-                    and notif_str != ""
-                    and notif_str in subject
-                ):
-                  email_snippet = f"\n\n[Synced Email from Returns - {received_time}]\nSubject: {subject}\n{body[:1200]}"
-                  if not any(
-                      item["db_id"] == db_id
-                      and item["subject"] == subject
-                      for item in staged_list
+              if (
+                  "return" in sender.lower()
+                  or "return" in subject.lower()
+                  or "returns" in subject.lower()
+              ):
+                for db_id, rga, notif, cust, existing_notes in rows:
+                  rga_str = str(rga).strip()
+                  notif_str = str(notif).strip()
+
+                  if (
+                      rga_str
+                      and rga_str != "nan"
+                      and rga_str != ""
+                      and rga_str in subject
+                  ) or (
+                      notif_str
+                      and notif_str != "nan"
+                      and notif_str != ""
+                      and notif_str in subject
                   ):
-                    if email_snippet not in str(existing_notes or ""):
-                      staged_list.append({
-                          "db_id": db_id,
-                          "customer": cust,
-                          "rga": rga_str,
-                          "notification": notif_str,
-                          "sender": sender,
-                          "subject": subject,
-                          "received": received_time,
-                          "body_snippet": email_snippet,
-                      })
-            scan_count += 1
-          except Exception:
-            continue
+                    email_snippet = f"\n\n[Synced Email from Returns - {received_time}]\nSubject: {subject}\n{body[:1200]}"
+                    if not any(
+                        item["db_id"] == db_id
+                        and item["subject"] == subject
+                        for item in staged_list
+                    ):
+                      if email_snippet not in str(existing_notes or ""):
+                        staged_list.append({
+                            "db_id": db_id,
+                            "customer": cust,
+                            "rga": rga_str,
+                            "notification": notif_str,
+                            "sender": sender,
+                            "subject": subject,
+                            "received": received_time,
+                            "body_snippet": email_snippet,
+                        })
+              scan_count += 1
+            except Exception:
+              continue
 
-        st.session_state.staged_returns_emails = staged_list
-        st.success(
-            f"Scan complete! Found {len(staged_list)} matching email(s) ready"
-            " for review below."
-        )
-        st.rerun()
-      except Exception as e:
-        st.error(
-            "Could not connect to Outlook via win32com. Make sure pywin32 is"
-            " installed (`pip install pywin32`) and Outlook is running."
-            f" Error: {e}"
-        )
+          st.session_state.staged_returns_emails = staged_list
+          st.success(
+              f"Scan complete! Found {len(staged_list)} matching email(s) ready"
+              " for review below."
+          )
+          st.rerun()
+        except Exception as e:
+          st.error(f"Could not connect to Outlook via win32com: {e}")
 
   if st.session_state.staged_returns_emails:
     st.markdown("### 📋 Step 2: Review Pulled Emails Before Applying")
@@ -1358,89 +1360,90 @@ elif action == "Sync Sent Items (Outbox & Replies)":
   col_sent1, col_sent2 = st.columns(2)
   with col_sent1:
     if st.button("🔍 1. Scan Outlook Sent Items & Stage Matches"):
-      try:
-        import pythoncom
-        import win32com.client
-
-        pythoncom.CoInitialize()
-        outlook = win32com.client.Dispatch("Outlook.Application").GetNamespace(
-            "MAPI"
+      if sys.platform != "win32":
+        st.warning(
+            "Outlook synchronization requires Windows and Outlook desktop app."
         )
-        sent_folder = outlook.GetDefaultFolder(
-            5
-        )  # 5 corresponds to Sent Items folder
-        messages = sent_folder.Items
-        messages.Sort("[SentOn]", True)
+      else:
+        try:
+          import pythoncom
+          import win32com.client
 
-        conn = sqlite3.connect(DB_FILE)
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT id, rga_number, notification_number, customer_name, notes"
-            " FROM queue"
-        )
-        rows = cursor.fetchall()
-        conn.close()
+          pythoncom.CoInitialize()
+          outlook = win32com.client.Dispatch(
+              "Outlook.Application"
+          ).GetNamespace("MAPI")
+          sent_folder = outlook.GetDefaultFolder(
+              5
+          )  # 5 corresponds to Sent Items folder
+          messages = sent_folder.Items
+          messages.Sort("[SentOn]", True)
 
-        staged_list = []
-        scan_count = 0
+          conn = sqlite3.connect(DB_FILE)
+          cursor = conn.cursor()
+          cursor.execute(
+              "SELECT id, rga_number, notification_number, customer_name,"
+              " notes FROM queue"
+          )
+          rows = cursor.fetchall()
+          conn.close()
 
-        for message in messages:
-          if scan_count > 150:
-            break
-          try:
-            subject = getattr(message, "Subject", "")
-            body = getattr(message, "Body", "")
-            sent_time = str(getattr(message, "SentOn", ""))
-            to_recipient = getattr(message, "To", "")
+          staged_list = []
+          scan_count = 0
 
-            for db_id, rga, notif, cust, existing_notes in rows:
-              rga_str = str(rga).strip()
-              notif_str = str(notif).strip()
+          for message in messages:
+            if scan_count > 150:
+              break
+            try:
+              subject = getattr(message, "Subject", "")
+              body = getattr(message, "Body", "")
+              sent_time = str(getattr(message, "SentOn", ""))
+              to_recipient = getattr(message, "To", "")
 
-              if (
-                  rga_str
-                  and rga_str != "nan"
-                  and rga_str != ""
-                  and rga_str in subject
-              ) or (
-                  notif_str
-                  and notif_str != "nan"
-                  and notif_str != ""
-                  and notif_str in subject
-              ):
-                email_snippet = f"\n\n[Synced Sent Reply - {sent_time}]\nTo: {to_recipient}\nSubject: {subject}\n{body[:1200]}"
-                if not any(
-                    item["db_id"] == db_id
-                    and item["subject"] == subject
-                    for item in staged_list
+              for db_id, rga, notif, cust, existing_notes in rows:
+                rga_str = str(rga).strip()
+                notif_str = str(notif).strip()
+
+                if (
+                    rga_str
+                    and rga_str != "nan"
+                    and rga_str != ""
+                    and rga_str in subject
+                ) or (
+                    notif_str
+                    and notif_str != "nan"
+                    and notif_str != ""
+                    and notif_str in subject
                 ):
-                  if "[Synced Sent Reply]" not in str(existing_notes or ""):
-                    staged_list.append({
-                        "db_id": db_id,
-                        "customer": cust,
-                        "rga": rga_str,
-                        "notification": notif_str,
-                        "to": to_recipient,
-                        "subject": subject,
-                        "sent": sent_time,
-                        "body_snippet": email_snippet,
-                    })
-            scan_count += 1
-          except Exception:
-            continue
+                  email_snippet = f"\n\n[Synced Sent Reply - {sent_time}]\nTo: {to_recipient}\nSubject: {subject}\n{body[:1200]}"
+                  if not any(
+                      item["db_id"] == db_id
+                      and item["subject"] == subject
+                      for item in staged_list
+                  ):
+                    if "[Synced Sent Reply]" not in str(existing_notes or ""):
+                      staged_list.append({
+                          "db_id": db_id,
+                          "customer": cust,
+                          "rga": rga_str,
+                          "notification": notif_str,
+                          "to": to_recipient,
+                          "subject": subject,
+                          "sent": sent_time,
+                          "body_snippet": email_snippet,
+                      })
+              scan_count += 1
+            except Exception:
+              continue
 
-        st.session_state.staged_sent_emails = staged_list
-        st.success(
-            f"Scan complete! Found {len(staged_list)} matching sent reply(s)"
-            " ready for review below."
-        )
-        st.rerun()
-      except Exception as e:
-        st.error(
-            "Could not connect to Outlook via win32com. Make sure pywin32 is"
-            " installed (`pip install pywin32`) and Outlook is running."
-            f" Error: {e}"
-        )
+          st.session_state.staged_sent_emails = staged_list
+          st.success(
+              f"Scan complete! Found {len(staged_list)} matching sent reply(s)"
+              " ready for review below."
+          )
+          st.rerun()
+        except Exception as e:
+          st.error(f"Could not connect to Outlook via win32com: {e}")
 
   if st.session_state.staged_sent_emails:
     st.markdown("### 📋 Step 2: Review Sent Replies Before Applying")
