@@ -85,7 +85,6 @@ def init_db():
         )
     """)
 
-  # Default View-Only Display Configuration
   default_view_config = json.dumps({
       "show_customer": True,
       "show_wo": True,
@@ -242,17 +241,13 @@ if not st.session_state.logged_in:
             st.error("Invalid Username or Password. Please try again.")
 
     with tab_guest:
-      st.markdown(
-          "Access standard read-only queue telemetry without login"
-          " credentials."
-      )
+      st.markdown("Access standard read-only queue telemetry without login credentials.")
       if st.button("Continue as View-Only User", use_container_width=True):
         st.session_state.logged_in = True
         st.session_state.user_role = "View Only"
         st.session_state.user_name = "Guest User"
         st.rerun()
 
-  # Stop script execution until user completes authentication
   st.stop()
 
 
@@ -276,7 +271,6 @@ with st.sidebar:
 
   st.markdown("---")
 
-  # Dynamic Action Navigation Based on Role
   role = st.session_state.user_role
 
   if role == "View Only":
@@ -441,6 +435,54 @@ else:
   display_df = pd.DataFrame()
 
 
+def save_item(data):
+  conn = sqlite3.connect(DB_FILE)
+  cursor = conn.cursor()
+  cursor.execute(
+      """
+        INSERT INTO queue (date_in_lab, customer_name, rga_number, wo_number, notification_number, model_description, part_number, serial_number, sensor_number, accessories, service_requested, expedited_shipping, supervisor_urgency, date_started, finished_date, status, waiting_on, assigned_to, notes, photo_path, cert_folder_path, last_updated)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """,
+      data,
+  )
+  conn.commit()
+  conn.close()
+
+
+def update_item_status(item_id, status, waiting_on, assigned_to, expedited_shipping, supervisor_urgency, date_started, finished_date, notes, photo_path, cert_folder_path, wo_number):
+  conn = sqlite3.connect(DB_FILE)
+  cursor = conn.cursor()
+  today = datetime.today().strftime("%Y-%m-%d")
+
+  if finished_date and str(finished_date).strip() != "":
+    status = "Closed"
+
+  cursor.execute(
+      """
+        UPDATE queue 
+        SET status = ?, waiting_on = ?, assigned_to = ?, expedited_shipping = ?, supervisor_urgency = ?, date_started = ?, finished_date = ?, notes = ?, photo_path = ?, cert_folder_path = ?, wo_number = ?, last_updated = ?
+        WHERE id = ?
+    """,
+      (
+          status,
+          waiting_on,
+          assigned_to,
+          expedited_shipping,
+          supervisor_urgency,
+          str(date_started),
+          str(finished_date),
+          notes,
+          photo_path,
+          cert_folder_path,
+          wo_number,
+          today,
+          item_id,
+      ),
+  )
+  conn.commit()
+  conn.close()
+
+
 # --- VIEW DASHBOARD VIEW ---
 if action == "View Queue Dashboard":
   st.subheader("Current Active Queue & Expandable RGA Parent-Child Linkage Tree")
@@ -572,6 +614,108 @@ if action == "View Queue Dashboard":
 
           if not photo_found_in_rga:
             st.info("No inspection photos attached to units in this RGA yet.")
+  else:
+    st.info("💡 No items currently logged in the queue. Go to 'Demo & Reset Controls' in the sidebar menu to preload demo data or log a new item!")
+
+# --- GENERATE SUPPORT EMAIL ---
+elif action == "Generate Support Email":
+  st.subheader("📧 Support & Customer Service Email Generator")
+  st.markdown("Select a unit below to generate a clean email template for Customer Service / Support.")
+
+  if not df.empty:
+    email_options = {}
+    for index, row in df.iterrows():
+      label_str = f"ID {row['id']} - Customer: {row['customer_name']} | RGA: {row['rga_number']} | WO: {row['wo_number']} | {row['model_description']} (SN: {row['serial_number']})"
+      email_options[label_str] = row["id"]
+
+    selected_email_label = st.selectbox("Select Unit for Email Generation", list(email_options.keys()))
+    selected_email_id = email_options[selected_email_label]
+    e_row = df[df["id"] == selected_email_id].iloc[0]
+
+    email_type = st.radio(
+        "Select Email Scenario for Support",
+        [
+            "🔴 Failed Calibration: Ask Customer if Unit should be Returned or Scrapped",
+            "🛠️ Parts Replacement Needed: Request Evaluation Report & PO Approval",
+        ],
+    )
+
+    cust_name = e_row["customer_name"] if pd.notna(e_row["customer_name"]) and e_row["customer_name"] else "[Customer Name]"
+    rga_val = e_row["rga_number"] if pd.notna(e_row["rga_number"]) and e_row["rga_number"] else "N/A"
+    wo_val = e_row["wo_number"] if pd.notna(e_row["wo_number"]) and e_row["wo_number"] else "N/A"
+    notif_val = e_row["notification_number"] if pd.notna(e_row["notification_number"]) and e_row["notification_number"] else "N/A"
+    model_val = e_row["model_description"] if pd.notna(e_row["model_description"]) and e_row["model_description"] else "N/A"
+    pn_val = e_row["part_number"] if pd.notna(e_row["part_number"]) and e_row["part_number"] else "N/A"
+    sn_val = e_row["serial_number"] if pd.notna(e_row["serial_number"]) and e_row["serial_number"] else "N/A"
+    notes_val = e_row["notes"] if pd.notna(e_row["notes"]) and e_row["notes"] else "Unit evaluated in lab."
+
+    if "Failed Calibration" in email_type:
+      email_subject = f"HYDAC Lab Evaluation / Calibration Results - RGA #{rga_val} / WO #{wo_val} (SN: {sn_val})"
+      email_body = f"""Hi Support / Customer Service Team,
+
+Please use or adapt the draft below to reach out to the customer ({cust_name}) regarding their unit failing calibration testing.
+
+---
+**Customer Name:** {cust_name}
+**RGA Number:** {rga_val}
+**Work Order (WO) #:** {wo_val}
+**Notification #:** {notif_val}
+**Model Description:** {model_val}
+**Part Number:** {pn_val}
+**Serial Number:** {sn_val}
+**Lab Findings / Notes:** {notes_val}
+---
+
+**Email Draft for Customer:**
+"Dear {cust_name},
+
+We have completed the evaluation and calibration testing for your unit in our lab. Unfortunately, the unit referenced above failed to meet calibration specifications or standard operational limits.
+
+Please let us know how you would like to proceed:
+1. **Return Unit As-Is / Unrepaired** (Shipping charges may apply)
+2. **Scrap Unit Locally** (HYDAC will recycle/dispose of the unit here)
+
+Please reply at your earliest convenience with your decision so we can process your shipment.
+
+Best regards,
+HYDAC Customer Service"
+"""
+    else:
+      email_subject = f"HYDAC Lab Evaluation Report & PO Request - RGA #{rga_val} / WO #{wo_val} (SN: {sn_val})"
+      email_body = f"""Hi Support / Customer Service Team,
+
+Please use or adapt the draft below to reach out to the customer ({cust_name}) to provide the evaluation report and request a Purchase Order (PO) for replacement parts.
+
+---
+**Customer Name:** {cust_name}
+**RGA Number:** {rga_val}
+**Work Order (WO) #:** {wo_val}
+**Notification #:** {notif_val}
+**Model Description:** {model_val}
+**Part Number:** {pn_val}
+**Serial Number:** {sn_val}
+**Lab Findings & Repair Notes:** {notes_val}
+---
+
+**Email Draft for Customer:**
+"Dear {cust_name},
+
+Our technicians have evaluated your unit in the lab. Based on our diagnostics, replacement parts and repair work are required to restore the unit to full working order. 
+
+Please find our evaluation report attached. **To proceed with the repairs, we kindly request that you review the evaluation and provide an official Purchase Order (PO).**
+
+Please reply with your Purchase Order (PO) or let us know if you have any questions.
+
+Best regards,
+HYDAC Customer Service"
+"""
+
+    st.markdown("---")
+    st.markdown("### 📋 Email Content & One-Click Copy")
+    st.text_input("Subject Line", value=email_subject)
+    st.code(email_body, language="markdown")
+  else:
+    st.info("💡 No units currently logged in the queue. Go to 'Demo & Reset Controls' to preload demo records or log a new item.")
 
 # --- VIEW ONLY DISPLAY CONFIGURATION PANEL ---
 elif action == "⚙️ View-Only Display Config":
@@ -646,40 +790,30 @@ elif action == "Log New Item (Single)":
             f.write(upic.getbuffer())
           saved_paths.append(saved_p)
 
-      conn = sqlite3.connect(DB_FILE)
-      cursor = conn.cursor()
-      cursor.execute(
-          """
-                INSERT INTO queue (date_in_lab, customer_name, rga_number, wo_number, notification_number, model_description, part_number, serial_number, sensor_number, accessories, service_requested, expedited_shipping, supervisor_urgency, date_started, finished_date, status, waiting_on, assigned_to, notes, photo_path, cert_folder_path, last_updated)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-          (
-              date_in_lab.strftime("%Y-%m-%d"),
-              customer_name,
-              rga_number,
-              wo_number,
-              notification_number,
-              model_description,
-              part_number,
-              serial_number,
-              sensor_number,
-              accessories,
-              service_requested,
-              "Yes" if expedited_shipping else "No",
-              supervisor_urgency,
-              datetime.today().strftime("%Y-%m-%d"),
-              "",
-              status,
-              "None",
-              assigned_to,
-              notes,
-              ";".join(saved_paths),
-              "",
-              datetime.today().strftime("%Y-%m-%d"),
-          ),
-      )
-      conn.commit()
-      conn.close()
+      save_item((
+          date_in_lab.strftime("%Y-%m-%d"),
+          customer_name,
+          rga_number,
+          wo_number,
+          notification_number,
+          model_description,
+          part_number,
+          serial_number,
+          sensor_number,
+          accessories,
+          service_requested,
+          "Yes" if expedited_shipping else "No",
+          supervisor_urgency,
+          datetime.today().strftime("%Y-%m-%d"),
+          "",
+          status,
+          "None",
+          assigned_to,
+          notes,
+          ";".join(saved_paths),
+          "",
+          datetime.today().strftime("%Y-%m-%d"),
+      ))
       st.success("Successfully logged unit into queue!")
       st.rerun()
 
@@ -745,30 +879,22 @@ elif action == "Bulk Import & Staged Review":
     if st.button("Confirm and Commit Staged Items"):
       st.success("Successfully committed staged items!")
 
-# --- GENERATE SUPPORT EMAIL ---
-elif action == "Generate Support Email":
-  st.subheader("📧 Support & Customer Service Email Generator")
-  if not df.empty:
-    selected_id = st.selectbox("Select Unit", df["id"].tolist())
-    e_row = df[df["id"] == selected_id].iloc[0]
-    st.code(f"Subject: HYDAC Evaluation Results - RGA #{e_row['rga_number']}\n\nDear {e_row['customer_name']},\n\nYour unit (SN: {e_row['serial_number']}) has been evaluated.", language="markdown")
-
 # --- SYNC EMAILS FROM RETURNS ---
 elif action == "Sync Emails from Returns":
   st.subheader("📥 Sync Outlook Emails from 'Returns'")
-  if st.button("🔍 Scan Outlook Inbox"):
-    if sys.platform != "win32":
-      st.warning("Outlook integration requires Windows desktop environment.")
-    else:
+  if sys.platform != "win32":
+    st.warning("Outlook integration requires Windows desktop environment.")
+  else:
+    if st.button("🔍 Scan Outlook Inbox"):
       st.info("Scanning local Outlook MAPI inbox...")
 
 # --- SYNC SENT ITEMS ---
 elif action == "Sync Sent Items (Outbox & Replies)":
   st.subheader("📤 Sync Outlook Sent Items")
-  if st.button("🔍 Scan Outlook Sent Items"):
-    if sys.platform != "win32":
-      st.warning("Outlook integration requires Windows desktop environment.")
-    else:
+  if sys.platform != "win32":
+    st.warning("Outlook integration requires Windows desktop environment.")
+  else:
+    if st.button("🔍 Scan Outlook Sent Items"):
       st.info("Scanning local Outlook MAPI sent folder...")
 
 # --- SUPERVISOR URGENCY OVERRIDE ---
@@ -785,6 +911,8 @@ elif action == "Supervisor Urgency Override":
       conn.close()
       st.success("Urgency level updated!")
       st.rerun()
+  else:
+    st.info("💡 No units in queue. Go to 'Demo & Reset Controls' to preload demo data or log a new item.")
 
 # --- CREATE SERIAL CERT FOLDER ---
 elif action == "Create Serial Cert Folder":
@@ -798,6 +926,8 @@ elif action == "Create Serial Cert Folder":
       if not os.path.exists(target_folder):
         os.makedirs(target_folder)
       st.success(f"Created certificate folder at: {target_folder}")
+  else:
+    st.info("💡 No units in queue. Go to 'Demo & Reset Controls' to preload demo data or log a new item.")
 
 # --- DEMO & RESET CONTROLS ---
 elif action == "Demo & Reset Controls":
@@ -805,7 +935,85 @@ elif action == "Demo & Reset Controls":
   col1, col2 = st.columns(2)
   with col1:
     if st.button("🚀 Preload 50 Showcase Demo Items"):
-      st.info("Preloading demo records...")
+      conn = sqlite3.connect(DB_FILE)
+      cursor = conn.cursor()
+      cursor.execute("DROP TABLE IF EXISTS queue")
+      conn.commit()
+      init_db()
+
+      available_demo_photos = []
+      if os.path.exists(DEMO_PHOTOS_DIR):
+        valid_exts = (".png", ".jpg", ".jpeg")
+        available_demo_photos = [
+            os.path.join(DEMO_PHOTOS_DIR, f)
+            for f in os.listdir(DEMO_PHOTOS_DIR)
+            if f.lower().endswith(valid_exts)
+        ]
+
+      demo_items = []
+      base_d = datetime(2026, 5, 1)
+      model_list_demo = ["CS12xx", "CS13xx", "CS15xx", "FCU1xxx", "FCU2xxx", "HMG 3000", "HMG 4000", "SENSORS"]
+      customer_list_demo = ["Acme Industrial Corp", "Global Hydraulics", "Apex Dynamics", "Vanguard Fluid Power", "Summit Tech Systems"]
+      status_list_demo = ["Staging Area Outside Lab", "Shelf Waiting for Evaluation", "In Progress", "Closed"]
+
+      for i in range(1, 51):
+        d_in = base_d + timedelta(days=(i % 45))
+        rga = f"6008{3000 + (i // 4)}"
+        wo = f"WO-{9000 + i}"
+        notif = f"200075{i:02d}"
+        sn = f"000sS01831K{i:07d}"
+        exp = "Yes" if i % 5 == 0 else "No"
+        urg = "🔴 CRITICAL / URGENT" if i in [3, 14, 27, 42] else "Normal"
+        status_val = status_list_demo[i % len(status_list_demo)]
+        fin_date = (d_in + timedelta(days=3)).strftime("%Y-%m-%d") if status_val == "Closed" else ""
+
+        assigned_photo_paths = ""
+        if available_demo_photos:
+          num_photos_to_pick = random.randint(1, min(3, len(available_demo_photos)))
+          picked_photos = random.sample(available_demo_photos, num_photos_to_pick)
+          assigned_photo_paths = ";".join(picked_photos)
+
+        demo_items.append((
+            d_in.strftime("%Y-%m-%d"),
+            customer_list_demo[i % len(customer_list_demo)],
+            rga,
+            wo,
+            notif,
+            model_list_demo[i % len(model_list_demo)],
+            f"PN-{200+i}",
+            sn,
+            f"SEN-{900+i}",
+            "Power supply & cables" if i % 2 == 0 else "None",
+            "Calibration" if i % 3 != 0 else "Repair",
+            exp,
+            urg,
+            (d_in + timedelta(days=1)).strftime("%Y-%m-%d"),
+            fin_date,
+            status_val,
+            "None",
+            "Geo Hall" if i % 2 == 0 else "Unassigned",
+            f"Demo item {i} record note.",
+            assigned_photo_paths,
+            os.path.join(CERTS_BASE_DIR, sn) if i % 3 == 0 else "",
+            d_in.strftime("%Y-%m-%d"),
+        ))
+
+      cursor.executemany(
+          """
+            INSERT INTO queue (
+                date_in_lab, customer_name, rga_number, wo_number, notification_number, 
+                model_description, part_number, serial_number, sensor_number, 
+                accessories, service_requested, expedited_shipping, supervisor_urgency, 
+                date_started, finished_date, status, waiting_on, assigned_to, notes, photo_path, cert_folder_path, last_updated
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+          demo_items,
+      )
+      conn.commit()
+      conn.close()
+      st.success("Successfully preloaded 50 showcase demo items!")
+      st.rerun()
+
   with col2:
     if st.button("🗑️ Erase All Data & Start Fresh"):
       conn = sqlite3.connect(DB_FILE)
@@ -821,25 +1029,50 @@ elif action == "Demo & Reset Controls":
 elif action == "Update Existing Item":
   st.subheader("Update Unit Status")
   if not df.empty:
-    u_id = st.selectbox("Select Item ID to Update", df["id"].tolist())
-    u_row = df[df["id"] == u_id].iloc[0]
+    item_options = {f"ID {row['id']} - RGA: {row['rga_number']} | {row['model_description']} (SN: {row['serial_number']})": row["id"] for _, row in df.iterrows()}
+    selected_label = st.selectbox("Select Item to Update", list(item_options.keys()))
+    selected_id = item_options[selected_label]
+    current_row = df[df["id"] == selected_id].iloc[0]
+
     with st.form("upd_form"):
-      u_status = st.selectbox("Status", ["Staging Area Outside Lab", "Shelf Waiting for Evaluation", "In Progress", "Closed"])
-      u_notes = st.text_area("Notes", value=str(u_row["notes"]))
+      col1, col2 = st.columns(2)
+      with col1:
+        new_wo = st.text_input("WO # (Work Order Number)", value=str(current_row["wo_number"]))
+        new_status = st.selectbox("Status", ["Staging Area Outside Lab", "Shelf Waiting for Evaluation", "In Progress", "Closed"])
+        new_expedited = st.checkbox("🚀 Expedited Shipping", value=(current_row["expedited_shipping"] == "Yes"))
+      with col2:
+        new_assigned = st.selectbox("Assigned Tech", ["Geo Hall", "Unassigned", "Other Technician"])
+        new_urgency = st.selectbox("Urgency", ["Normal", "🔴 CRITICAL / URGENT"])
+
+      new_notes = st.text_area("Outcome & Repair Notes", value=str(current_row["notes"]))
+
       if st.form_submit_button("Save Updates"):
-        conn = sqlite3.connect(DB_FILE)
-        cursor = conn.cursor()
-        cursor.execute("UPDATE queue SET status = ?, notes = ? WHERE id = ?", (u_status, u_notes, u_id))
-        conn.commit()
-        conn.close()
-        st.success("Unit updated!")
+        update_item_status(
+            selected_id,
+            new_status,
+            current_row["waiting_on"],
+            new_assigned,
+            "Yes" if new_expedited else "No",
+            new_urgency,
+            current_row["date_started"],
+            current_row["finished_date"],
+            new_notes,
+            current_row["photo_path"],
+            current_row["cert_folder_path"],
+            new_wo,
+        )
+        st.success("Unit updated successfully!")
         st.rerun()
+  else:
+    st.info("💡 No units in queue. Go to 'Demo & Reset Controls' to preload demo data or log a new item.")
 
 # --- MONTHLY VOLUME ANALYTICS ---
 elif action == "Monthly Volume Analytics":
   st.subheader("Unit Volume Tracking & Analytics")
   if not df.empty:
     st.dataframe(df.groupby("model_description")["id"].count().reset_index(), use_container_width=True)
+  else:
+    st.info("💡 No units in queue to generate volume analytics.")
 
 # --- BACKUP & DATA EXPORT ---
 elif action == "Backup & Data Export":
@@ -850,3 +1083,5 @@ elif action == "Backup & Data Export":
       df.to_excel(writer, index=False, sheet_name="QueueBackup")
     buffer.seek(0)
     st.download_button(label="📥 Download Excel Backup", data=buffer, file_name="lab_queue_backup.xlsx")
+  else:
+    st.info("💡 No units in queue to export.")
