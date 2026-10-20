@@ -259,7 +259,7 @@ with st.sidebar:
     st.info("💡 Place 'logo.png' in folder for branding.")
   st.markdown("---")
 
-  st.markdown(f"### 👤 Logged In As:")
+  st.markdown("### 👤 Logged In As:")
   st.markdown(f"**{st.session_state.user_name}**")
   st.caption(f"Role: `{st.session_state.user_role}`")
 
@@ -490,22 +490,23 @@ if action == "View Queue Dashboard":
   if not display_df.empty:
     v_config = get_view_config() if st.session_state.user_role == "View Only" else None
 
-    # --- COMMAND KPI RIBBON ---
-    active_shelf_df = display_df[display_df["Status / Location"] != "Closed"]
-    total_active = len(active_shelf_df)
-    urgent_count = len(active_shelf_df[active_shelf_df["Urgency Level"] == "🔴 CRITICAL / URGENT"])
-    expedited_count = len(active_shelf_df[active_shelf_df["Expedited"] == "Yes"])
-    avg_age = int(active_shelf_df["Age (Days)"].mean()) if not active_shelf_df.empty else 0
-    completed_count = len(display_df[display_df["Status / Location"] == "Closed"])
+    # --- COMMAND KPI RIBBON (HIDDEN FOR VIEW-ONLY USERS) ---
+    if st.session_state.user_role != "View Only":
+      active_shelf_df = display_df[display_df["Status / Location"] != "Closed"]
+      total_active = len(active_shelf_df)
+      urgent_count = len(active_shelf_df[active_shelf_df["Urgency Level"] == "🔴 CRITICAL / URGENT"])
+      expedited_count = len(active_shelf_df[active_shelf_df["Expedited"] == "Yes"])
+      avg_age = int(active_shelf_df["Age (Days)"].mean()) if not active_shelf_df.empty else 0
+      completed_count = len(display_df[display_df["Status / Location"] == "Closed"])
 
-    m1, m2, m3, m4, m5 = st.columns(5)
-    m1.metric("📦 Active Shelf Units", total_active)
-    m2.metric("🚨 Critical Urgent", urgent_count, delta_color="inverse")
-    m3.metric("🚀 Expedited Priority", expedited_count)
-    m4.metric("⏳ Mean Age", f"{avg_age} days")
-    m5.metric("✅ Completed / Closed", completed_count)
+      m1, m2, m3, m4, m5 = st.columns(5)
+      m1.metric("📦 Active Shelf Units", total_active)
+      m2.metric("🚨 Critical Urgent", urgent_count, delta_color="inverse")
+      m3.metric("🚀 Expedited Priority", expedited_count)
+      m4.metric("⏳ Mean Age", f"{avg_age} days")
+      m5.metric("✅ Completed / Closed", completed_count)
 
-    st.markdown("---")
+      st.markdown("---")
 
     urgent_active = display_df[
         (display_df["Status / Location"] != "Closed")
