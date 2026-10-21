@@ -1087,7 +1087,7 @@ elif action == "Backup & Data Export":
   else:
     st.info("💡 No units in queue to export.")
 
-def build_unit_dropdown_options(df):
+def build_unit_dropdown_options(df_Queue):
   """Formats dropdown labels into: RGA: X | Notif: Y | Model | SN: Z (Unit ID: N)"""
   options_map = {}
   if df is None or df.empty:
