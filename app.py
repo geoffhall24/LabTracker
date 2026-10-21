@@ -1143,8 +1143,10 @@ st.divider()
 
 
 # Build formatted options dictionary
+df_queue = load_data()
 unit_map = build_unit_dropdown_options(df_queue)
 # Ensure df_queue is loaded before generating dropdown options
+df_queue = load_data()
 df_queue = load_data()
 unit_map = build_unit_dropdown_options(df_queue)
 
