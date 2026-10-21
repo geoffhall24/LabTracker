@@ -1144,6 +1144,9 @@ st.divider()
 
 # Build formatted options dictionary
 unit_map = build_unit_dropdown_options(df_queue)
+# Ensure df_queue is loaded before generating dropdown options
+df_queue = load_data()
+unit_map = build_unit_dropdown_options(df_queue)
 
 if unit_map:
   selected_label = st.selectbox(
