@@ -916,19 +916,77 @@ elif action == "Supervisor Urgency Override":
     st.info("💡 No units in queue. Go to 'Demo & Reset Controls' to preload demo data or log a new item.")
 
 # --- CREATE SERIAL CERT FOLDER ---
-elif action == "Create Serial Cert Folder":
+# =========================================================
+# WORKFLOW: CREATE LOCAL CERTIFICATE FOLDER
+# =========================================================
+elif "Create Local Certificate Folder" in menu_choice:
   st.subheader("📁 Create Local Certificate Folder")
-  if not df.empty:
-    folder_id = st.selectbox("Select Unit for Cert Folder Creation", df["id"].tolist())
-    if st.button("Create Folder & Copy Template"):
-      folder_row = df[df["id"] == folder_id].iloc[0]
-      sn_val = str(folder_row["serial_number"]).strip()
-      target_folder = os.path.join(CERTS_BASE_DIR, sn_val)
-      if not os.path.exists(target_folder):
-        os.makedirs(target_folder)
-      st.success(f"Created certificate folder at: {target_folder}")
+
+  # 1. Guarantee dataset is loaded into memory
+  df_queue = load_data()
+
+  if df_queue.empty:
+    st.warning("No unit records available in database.")
   else:
-    st.info("💡 No units in queue. Go to 'Demo & Reset Controls' to preload demo data or log a new item.")
+    # 2. Build descriptive unit options map (RGA | Notif | Model | SN)
+    unit_map = build_unit_dropdown_options(df_queue)
+
+    if unit_map:
+      selected_label = st.selectbox(
+          "Select Unit for Cert Folder Creation:",
+          options=list(unit_map.keys()),
+          key="cert_folder_select",
+      )
+
+      selected_id = unit_map[selected_label]
+      selected_row = df_queue[df_queue["id"] == selected_id].iloc[0]
+
+      st.markdown("---")
+      st.markdown("#### Selected Unit Details")
+      c1, c2, c3 = st.columns(3)
+      c1.write(f"**RGA Number:** `{selected_row.get('rga_number', 'N/A')}`")
+      c2.write(
+          f"**Notification:** `{selected_row.get('notification_number', 'N/A')}`"
+      )
+      c3.write(
+          f"**Serial Number:** `{selected_row.get('serial_number', 'N/A')}`"
+      )
+
+      st.markdown("---")
+
+      # 3. Handle folder creation based on mode toggle
+      if is_local_mode:
+        if st.button("📁 Create Folder & Copy Template", type="primary"):
+          rga_clean = (
+              str(selected_row.get("rga_number", "UNKNOWN"))
+              .replace("nan", "")
+              .strip()
+              or "NO_RGA"
+          )
+          sn_clean = (
+              str(selected_row.get("serial_number", "UNKNOWN"))
+              .replace("nan", "")
+              .strip()
+              or "NO_SN"
+          )
+          folder_title = f"RGA_{rga_clean}_SN_{sn_clean}"
+          target_dir = os.path.join(LOCAL_CERTS_DIR, folder_title)
+
+          try:
+            os.makedirs(target_dir, exist_ok=True)
+            st.success(
+                f"✅ Folder successfully created locally:\n`{target_dir}`"
+            )
+          except Exception as err:
+            st.error(f"❌ Failed to create folder directory: {err}")
+      else:
+        st.warning(
+            "⚠️ **Local Folder Creation is disabled in Cloud Mode.**\n\n"
+            "To create folders on your local PC:\n"
+            "1. Launch the app locally via `run_app.bat`.\n"
+            "2. Switch the **Enable Local PC Mode** toggle at the top to"
+            " **ON**."
+        )
 
 # --- DEMO & RESET CONTROLS ---
 elif action == "Demo & Reset Controls":
