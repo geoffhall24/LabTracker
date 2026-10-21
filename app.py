@@ -1086,3 +1086,103 @@ elif action == "Backup & Data Export":
     st.download_button(label="📥 Download Excel Backup", data=buffer, file_name="lab_queue_backup.xlsx")
   else:
     st.info("💡 No units in queue to export.")
+
+def build_unit_dropdown_options(df):
+  """Formats dropdown labels into: RGA: X | Notif: Y | Model | SN: Z (Unit ID: N)"""
+  options_map = {}
+  if df is None or df.empty:
+    return options_map
+
+  for _, row in df.iterrows():
+    unit_id = row.get("id", "")
+    rga = str(row.get("rga_number", "")).replace("nan", "").strip() or "N/A"
+    notif = (
+        str(row.get("notification_number", "")).replace("nan", "").strip()
+        or "N/A"
+    )
+    model = (
+        row.get("model_series")
+        or row.get("model")
+        or row.get("item_description")
+        or "N/A"
+    )
+    sn = str(row.get("serial_number", "")).replace("nan", "").strip() or "N/A"
+
+    label = (
+        f"RGA: {rga} | Notif: {notif} | {model} | SN: {sn} (Unit ID: {unit_id})"
+    )
+    options_map[label] = unit_id
+
+  return options_map
+
+# =========================================================
+# TOP ENVIRONMENT TOGGLE (Cloud vs Local PC Mode)
+# =========================================================
+st.divider()
+toggle_col, status_col = st.columns([2, 3])
+
+with toggle_col:
+  is_local_mode = st.toggle(
+      "🖥️ Enable Local PC Mode (Folder Creation)", value=False
+  )
+
+with status_col:
+  if is_local_mode:
+    st.success(
+        "Mode: **Local PC** — Local folder creation enabled at:\n`"
+        + r"C:\Users\Geoff.Hall\OneDrive - HYDAC Technology Corp\Desktop\LabQueueTracker\Certs"
+        + "`"
+    )
+  else:
+    st.info(
+        "Mode: **Streamlit Cloud** — Read-only web mode (Folder creation"
+        " disabled)."
+    )
+
+st.divider()
+
+
+# Build formatted options dictionary
+unit_map = build_unit_dropdown_options(df_queue)
+
+if unit_map:
+  selected_label = st.selectbox(
+      "Select Unit for Cert Folder Creation:", options=list(unit_map.keys())
+  )
+
+  selected_id = unit_map[selected_label]
+  selected_row = df_queue[df_queue["id"] == selected_id].iloc[0]
+
+  # Check Local PC Mode Toggle before allowing folder creation
+  if is_local_mode:
+    if st.button("📁 Create Folder Structure on Local PC", type="primary"):
+      rga_clean = (
+          str(selected_row.get("rga_number", "UNKNOWN"))
+          .replace("nan", "")
+          .strip()
+      )
+      sn_clean = (
+          str(selected_row.get("serial_number", "UNKNOWN"))
+          .replace("nan", "")
+          .strip()
+      )
+      folder_title = f"RGA_{rga_clean}_SN_{sn_clean}"
+      target_dir = os.path.join(
+          r"C:\Users\Geoff.Hall\OneDrive - HYDAC Technology Corp\Desktop\LabQueueTracker\Certs",
+          folder_title,
+      )
+
+      try:
+        os.makedirs(target_dir, exist_ok=True)
+        st.success(f"✅ Folder successfully created:\n`{target_dir}`")
+      except Exception as err:
+        st.error(f"❌ Could not create directory: {err}")
+  else:
+    st.warning(
+        "⚠️ **Local folder creation is disabled in Streamlit Cloud mode.**\n\nTo"
+        " create folders on your PC:\n1. Run the app locally via"
+        " `run_app.bat`.\n2. Switch the **Enable Local PC Mode** toggle at the"
+        " top to **ON**."
+    )
+else:
+  st.warning("No units available in database.")
