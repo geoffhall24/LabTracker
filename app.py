@@ -6,34 +6,130 @@ import pandas as pd
 import streamlit as st
 
 # =========================================================
-# PAGE CONFIGURATION & BRANDING
+# PAGE CONFIGURATION & HYDAC CORPORATE BRANDING
 # =========================================================
 st.set_page_config(
-    page_title="HYDAC Lab Queue Tracker", page_icon="⚡", layout="wide"
+    page_title="HYDAC Lab Queue Tracker",
+    page_icon="⚡",
+    layout="wide",
+    initial_sidebar_state="expanded",
 )
 
 DB_FILE = "lab_queue.db"
 LOCAL_CERTS_DIR = r"C:\Users\Geoff.Hall\OneDrive - HYDAC Technology Corp\Desktop\LabQueueTracker\Certs"
 
-# Custom CSS for Synced Email Badges and Layout
+# HYDAC Modern Industrial UI Design System (CSS)
 st.markdown(
     """
     <style>
+    /* HYDAC Brand Colors & Modern Theme Overrides */
+    :root {
+        --hydac-red: #E30613;
+        --hydac-dark-red: #A8000A;
+        --hydac-slate: #0F172A;
+        --hydac-silver: #F8FAFC;
+        --hydac-border: #E2E8F0;
+    }
+
+    /* Main Container Padding & Clean Typography */
+    .main .block-container {
+        padding-top: 1.8rem;
+        padding-bottom: 3rem;
+        max-width: 96%;
+    }
+
+    /* Header Banner Styling */
+    .hydac-header-card {
+        background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+        border-left: 6px solid #E30613;
+        border-radius: 8px;
+        padding: 18px 24px;
+        color: #FFFFFF;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        margin-bottom: 20px;
+    }
+    .hydac-header-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #FFFFFF;
+        margin: 0;
+        letter-spacing: -0.5px;
+    }
+    .hydac-header-subtitle {
+        font-size: 0.9rem;
+        color: #94A3B8;
+        margin-top: 4px;
+        font-weight: 500;
+    }
+
+    /* Metric & KPI Cards */
+    div[data-testid="stMetric"] {
+        background-color: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-top: 3px solid #E30613;
+        border-radius: 8px;
+        padding: 14px 18px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    }
+
+    /* Badges & Pills */
     .badge-email {
-        background-color: #2e7d32;
-        color: white;
-        padding: 3px 8px;
-        border-radius: 4px;
-        font-size: 0.85rem;
-        font-weight: bold;
+        background-color: #166534;
+        color: #DCFCE7;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        display: inline-block;
     }
     .badge-reply {
-        background-color: #1565c0;
-        color: white;
-        padding: 3px 8px;
-        border-radius: 4px;
-        font-size: 0.85rem;
-        font-weight: bold;
+        background-color: #1E40AF;
+        color: #DBEAFE;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        display: inline-block;
+    }
+    .badge-urgent {
+        background-color: #E30613;
+        color: #FFFFFF;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        display: inline-block;
+    }
+
+    /* Sidebar Profile & Section Headers */
+    .sidebar-user-card {
+        background: #1E293B;
+        border-left: 4px solid #E30613;
+        padding: 12px 16px;
+        border-radius: 6px;
+        color: #F8FAFC;
+        margin-bottom: 15px;
+    }
+    .sidebar-section-header {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #94A3B8;
+        font-weight: 700;
+        margin-top: 15px;
+        margin-bottom: 5px;
+    }
+
+    /* Custom Input Fields & Buttons */
+    div.stButton > button[kind="primary"] {
+        background-color: #E30613 !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        font-weight: 600 !important;
+        border-radius: 6px !important;
+    }
+    div.stButton > button[kind="primary"]:hover {
+        background-color: #A8000A !important;
     }
     </style>
 """,
@@ -87,25 +183,33 @@ def build_unit_dropdown_options(df):
   return options_map
 
 
-# Load dataset globally into memory
+# Initial dataset load into memory
 df_queue = load_data()
 
+
 # =========================================================
-# HEADER BANNERS & ENVIRONMENT TOGGLE
+# HEADER BANNER & BRANDING
 # =========================================================
-col_logo, col_title = st.columns([1, 6])
+col_logo, col_header = st.columns([1, 6])
 with col_logo:
   if os.path.exists("logo.png"):
-    st.image("logo.png", width=110)
+    st.image("logo.png", width=120)
   else:
-    st.title("⚡")
+    st.markdown("### ⚡ **HYDAC**")
 
-with col_title:
-  st.title("Enterprise Electronic Lab: Operations Command")
+with col_header:
+  st.markdown(
+      """
+    <div class="hydac-header-card">
+        <div class="hydac-header-title">Enterprise Electronic Lab: Operations Command</div>
+        <div class="hydac-header-subtitle">HYDAC Technology Corp — Quality Control, Testing & Returns Management</div>
+    </div>
+    """,
+      unsafe_allow_html=True,
+  )
 
-st.divider()
+# Environment Mode Toggle
 toggle_col, status_col = st.columns([2, 3])
-
 with toggle_col:
   is_local_mode = st.toggle(
       "🖥️ Enable Local PC Mode (Folder Creation)", value=False
@@ -126,37 +230,98 @@ with status_col:
 
 st.divider()
 
-# =========================================================
-# SIDEBAR NAVIGATION & USER CARD
-# =========================================================
-st.sidebar.markdown("### 👤 Logged In As:")
-st.sidebar.markdown("**Geo Hall**")
-st.sidebar.caption("Role: Developer")
-st.sidebar.button("🚪 Sign Out")
-st.sidebar.markdown("---")
 
-st.sidebar.header("Navigation Menu")
-nav_choice = st.sidebar.radio(
-    "Select View",
-    [
-        "View Queue Dashboard",
-        "Log New Item (Single)",
-        "Log Multiple Units (Batch per RGA)",
-        "Bulk Import & Staged Review",
-        "Update Existing Item",
-        "Generate Support Email",
-        "Sync Emails from Returns",
-        "Sync Sent Items (Outbox & Replies)",
-        "Supervisor Urgency Override",
-        "Create Serial Cert Folder",
-        "⚙️ View-Only Display Config",
-        "Demo & Reset Controls",
-        "Monthly Volume Analytics",
-        "Backup & Data Export",
-    ],
-)
+# =========================================================
+# SIDEBAR NAVIGATION & CATEGORIZED MODULES
+# =========================================================
+with st.sidebar:
+  st.markdown(
+      """
+    <div class="sidebar-user-card">
+        <div style="font-size:0.75rem; color:#94A3B8; text-transform:uppercase;">Logged In User</div>
+        <div style="font-size:1.1rem; font-weight:700;">Geo Hall</div>
+        <div style="font-size:0.8rem; color:#E30613; font-weight:600;">Lab Lead / Developer</div>
+    </div>
+    """,
+      unsafe_allow_html=True,
+  )
 
-# Keep df_queue fresh on every re-render
+  if st.button("🚪 Sign Out", use_container_width=True):
+    st.toast("Signed out cleanly.", icon="🚪")
+
+  st.markdown("---")
+  st.markdown(
+      '<div class="sidebar-section-header">MODULE CATEGORY</div>',
+      unsafe_allow_html=True,
+  )
+
+  # Category Routing for Clean Organization
+  nav_category = st.selectbox(
+      "Select Module Category",
+      [
+          "📊 Dashboard & Analytics",
+          "📥 Unit Logging & Intake",
+          "⚙️ Queue & Folder Operations",
+          "✉️ Outlook Communications",
+          "🛠️ System Admin & Tools",
+      ],
+      label_visibility="collapsed",
+  )
+
+  st.markdown(
+      '<div class="sidebar-section-header">WORKFLOW VIEW</div>',
+      unsafe_allow_html=True,
+  )
+
+  # Nested Views by Category
+  if nav_category == "📊 Dashboard & Analytics":
+    nav_choice = st.radio(
+        "Workflow",
+        ["View Queue Dashboard", "Monthly Volume Analytics"],
+        label_visibility="collapsed",
+    )
+  elif nav_category == "📥 Unit Logging & Intake":
+    nav_choice = st.radio(
+        "Workflow",
+        [
+            "Log New Item (Single)",
+            "Log Multiple Units (Batch per RGA)",
+            "Bulk Import & Staged Review",
+        ],
+        label_visibility="collapsed",
+    )
+  elif nav_category == "⚙️ Queue & Folder Operations":
+    nav_choice = st.radio(
+        "Workflow",
+        [
+            "Update Existing Item",
+            "Create Serial Cert Folder",
+            "Supervisor Urgency Override",
+        ],
+        label_visibility="collapsed",
+    )
+  elif nav_category == "✉️ Outlook Communications":
+    nav_choice = st.radio(
+        "Workflow",
+        [
+            "Generate Support Email",
+            "Sync Emails from Returns",
+            "Sync Sent Items (Outbox & Replies)",
+        ],
+        label_visibility="collapsed",
+    )
+  else:
+    nav_choice = st.radio(
+        "Workflow",
+        [
+            "⚙️ View-Only Display Config",
+            "Demo & Reset Controls",
+            "Backup & Data Export",
+        ],
+        label_visibility="collapsed",
+    )
+
+# Re-query fresh data on every interaction
 df_queue = load_data()
 
 
@@ -198,7 +363,7 @@ if nav_choice == "View Queue Dashboard":
 
     st.markdown("---")
     search_term = st.text_input(
-        "🔍 Filter Queue (RGA, Notification, Customer, Model, Serial Number):"
+        "🔍 Search / Filter Queue (RGA, Notification, Customer, Model, Serial Number):"
     )
 
     if search_term:
@@ -259,7 +424,10 @@ if nav_choice == "View Queue Dashboard":
           )
 
         st.text_area(
-            "Outcome / Notes History:", value=notes_val, height=200, disabled=True
+            "Outcome / Notes History:",
+            value=notes_val,
+            height=200,
+            disabled=True,
         )
 
 # =========================================================
@@ -268,10 +436,14 @@ if nav_choice == "View Queue Dashboard":
 elif nav_choice == "Log New Item (Single)":
   st.subheader("📝 Log New Unit into Queue")
   with st.form("new_unit_form"):
-    f_rga = st.text_input("RGA Number")
-    f_notif = st.text_input("Notification Number")
-    f_cust = st.text_input("Customer Name")
-    f_model = st.text_input("Model / Item Description")
+    c1, c2 = st.columns(2)
+    f_rga = c1.text_input("RGA Number")
+    f_notif = c2.text_input("Notification Number")
+
+    c3, c4 = st.columns(2)
+    f_cust = c3.text_input("Customer Name")
+    f_model = c4.text_input("Model / Item Description")
+
     f_sn = st.text_input("Serial Number")
     f_status = st.selectbox(
         "Initial Status",
@@ -284,7 +456,7 @@ elif nav_choice == "Log New Item (Single)":
     )
     f_notes = st.text_area("Initial Notes")
 
-    submit_btn = st.form_submit_button("➕ Log Unit")
+    submit_btn = st.form_submit_button("➕ Log Unit", type="primary")
     if submit_btn:
       conn = sqlite3.connect(DB_FILE)
       cursor = conn.cursor()
@@ -304,13 +476,17 @@ elif nav_choice == "Log New Item (Single)":
 # =========================================================
 elif nav_choice == "Log Multiple Units (Batch per RGA)":
   st.subheader("📦 Batch Log Multiple Serial Numbers")
-  batch_rga = st.text_input("RGA Number for Batch:")
-  batch_notif = st.text_input("Notification Number:")
-  batch_cust = st.text_input("Customer Name:")
-  batch_model = st.text_input("Model / Item Description:")
+  c1, c2 = st.columns(2)
+  batch_rga = c1.text_input("RGA Number for Batch:")
+  batch_notif = c2.text_input("Notification Number:")
+
+  c3, c4 = st.columns(2)
+  batch_cust = c3.text_input("Customer Name:")
+  batch_model = c4.text_input("Model / Item Description:")
+
   batch_sns = st.text_area("Enter Serial Numbers (One per line):")
 
-  if st.button("🚀 Process Batch Logging"):
+  if st.button("🚀 Process Batch Logging", type="primary"):
     sn_list = [s.strip() for s in batch_sns.split("\n") if s.strip()]
     if sn_list:
       conn = sqlite3.connect(DB_FILE)
@@ -349,7 +525,9 @@ elif nav_choice == "Bulk Import & Staged Review":
       st.markdown("#### Staged Data Preview")
       st.dataframe(import_df.head(10))
 
-      if st.button("💾 Append Previewed Data to Queue Database"):
+      if st.button(
+          "💾 Append Previewed Data to Queue Database", type="primary"
+      ):
         conn = sqlite3.connect(DB_FILE)
         import_df.to_sql("queue", conn, if_exists="append", index=False)
         conn.close()
@@ -376,26 +554,30 @@ elif nav_choice == "Update Existing Item":
     sel_row = df_queue[df_queue["id"] == sel_id].iloc[0]
 
     with st.form("edit_unit_form"):
-      u_rga = st.text_input(
+      c1, c2 = st.columns(2)
+      u_rga = c1.text_input(
           "RGA Number", value=str(sel_row.get("rga_number", ""))
       )
-      u_notif = st.text_input(
+      u_notif = c2.text_input(
           "Notification Number",
           value=str(sel_row.get("notification_number", "")),
       )
-      u_cust = st.text_input(
+
+      c3, c4 = st.columns(2)
+      u_cust = c3.text_input(
           "Customer Name", value=str(sel_row.get("customer_name", ""))
       )
-      u_model = st.text_input(
+      u_model = c4.text_input(
           "Model / Item", value=str(sel_row.get("model_series", ""))
       )
+
       u_sn = st.text_input(
           "Serial Number", value=str(sel_row.get("serial_number", ""))
       )
       u_status = st.text_input("Status", value=str(sel_row.get("status", "")))
       u_notes = st.text_area("Notes", value=str(sel_row.get("notes", "")))
 
-      if st.form_submit_button("💾 Save Record Updates"):
+      if st.form_submit_button("💾 Save Record Updates", type="primary"):
         conn = sqlite3.connect(DB_FILE)
         cursor = conn.cursor()
         cursor.execute(
@@ -467,7 +649,9 @@ elif nav_choice == "Sync Emails from Returns":
     )
     sel_id = unit_map[sel_label]
     sel_row = email_units[email_units["id"] == sel_id].iloc[0]
-    st.text_area("Synced Email Content:", value=str(sel_row.get("notes", "")), height=300)
+    st.text_area(
+        "Synced Email Content:", value=str(sel_row.get("notes", "")), height=300
+    )
 
 # =========================================================
 # VIEW 8: SYNC SENT ITEMS (OUTBOX & REPLIES)
@@ -489,7 +673,11 @@ elif nav_choice == "Sync Sent Items (Outbox & Replies)":
     )
     sel_id = unit_map[sel_label]
     sel_row = sent_units[sent_units["id"] == sel_id].iloc[0]
-    st.text_area("Synced Sent Reply Content:", value=str(sel_row.get("notes", "")), height=300)
+    st.text_area(
+        "Synced Sent Reply Content:",
+        value=str(sel_row.get("notes", "")),
+        height=300,
+    )
 
 # =========================================================
 # VIEW 9: SUPERVISOR URGENCY OVERRIDE
@@ -509,7 +697,7 @@ elif nav_choice == "Supervisor Urgency Override":
         options=["Normal", "High Priority", "CRITICAL / EXPEDITE"],
     )
 
-    if st.button("Apply Urgency Flag"):
+    if st.button("Apply Urgency Flag", type="primary"):
       conn = sqlite3.connect(DB_FILE)
       cursor = conn.cursor()
       cursor.execute(
