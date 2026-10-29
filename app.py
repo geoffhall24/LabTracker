@@ -6,7 +6,7 @@ import pandas as pd
 import streamlit as st
 
 # =========================================================
-# PAGE CONFIGURATION & HYDAC CORPORATE BRANDING
+# PAGE CONFIGURATION & HYDAC CORPORATE THEME
 # =========================================================
 st.set_page_config(
     page_title="HYDAC Lab Queue Tracker",
@@ -18,61 +18,66 @@ st.set_page_config(
 DB_FILE = "lab_queue.db"
 LOCAL_CERTS_DIR = r"C:\Users\Geoff.Hall\OneDrive - HYDAC Technology Corp\Desktop\LabQueueTracker\Certs"
 
-# HYDAC Modern Industrial UI Design System (CSS)
+# HYDAC Modern Industrial UI Styling (Corporate Red & Dark Slate)
 st.markdown(
     """
     <style>
-    /* HYDAC Brand Colors & Modern Theme Overrides */
+    /* HYDAC Corporate Palette */
     :root {
         --hydac-red: #E30613;
-        --hydac-dark-red: #A8000A;
-        --hydac-slate: #0F172A;
-        --hydac-silver: #F8FAFC;
+        --hydac-dark: #0F172A;
+        --hydac-slate: #1E293B;
+        --hydac-bg: #F8FAFC;
         --hydac-border: #E2E8F0;
     }
 
-    /* Main Container Padding & Clean Typography */
+    /* Main Container Padding */
     .main .block-container {
-        padding-top: 1.8rem;
-        padding-bottom: 3rem;
+        padding-top: 1.5rem;
+        padding-bottom: 2.5rem;
         max-width: 96%;
     }
 
-    /* Header Banner Styling */
+    /* Enterprise Header Banner */
     .hydac-header-card {
         background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
         border-left: 6px solid #E30613;
         border-radius: 8px;
-        padding: 18px 24px;
+        padding: 20px 24px;
         color: #FFFFFF;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-        margin-bottom: 20px;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+        margin-bottom: 18px;
     }
     .hydac-header-title {
-        font-size: 1.75rem;
+        font-size: 1.85rem;
         font-weight: 700;
         color: #FFFFFF;
         margin: 0;
         letter-spacing: -0.5px;
     }
     .hydac-header-subtitle {
-        font-size: 0.9rem;
+        font-size: 0.92rem;
         color: #94A3B8;
         margin-top: 4px;
         font-weight: 500;
     }
 
-    /* Metric & KPI Cards */
+    /* KPI Metrics Styling */
     div[data-testid="stMetric"] {
         background-color: #FFFFFF;
         border: 1px solid #E2E8F0;
         border-top: 3px solid #E30613;
         border-radius: 8px;
         padding: 14px 18px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+    }
+    div[data-testid="stMetric"] label {
+        color: #475569 !important;
+        font-weight: 600 !important;
+        font-size: 0.85rem !important;
     }
 
-    /* Badges & Pills */
+    /* Badges & Status Pills */
     .badge-email {
         background-color: #166534;
         color: #DCFCE7;
@@ -91,17 +96,8 @@ st.markdown(
         font-weight: 600;
         display: inline-block;
     }
-    .badge-urgent {
-        background-color: #E30613;
-        color: #FFFFFF;
-        padding: 4px 10px;
-        border-radius: 12px;
-        font-size: 0.8rem;
-        font-weight: 700;
-        display: inline-block;
-    }
 
-    /* Sidebar Profile & Section Headers */
+    /* Sidebar Customization */
     .sidebar-user-card {
         background: #1E293B;
         border-left: 4px solid #E30613;
@@ -111,16 +107,16 @@ st.markdown(
         margin-bottom: 15px;
     }
     .sidebar-section-header {
-        font-size: 0.75rem;
+        font-size: 0.72rem;
         text-transform: uppercase;
         letter-spacing: 1px;
         color: #94A3B8;
         font-weight: 700;
-        margin-top: 15px;
-        margin-bottom: 5px;
+        margin-top: 14px;
+        margin-bottom: 6px;
     }
 
-    /* Custom Input Fields & Buttons */
+    /* Button Styling Overrides */
     div.stButton > button[kind="primary"] {
         background-color: #E30613 !important;
         color: #FFFFFF !important;
@@ -183,17 +179,17 @@ def build_unit_dropdown_options(df):
   return options_map
 
 
-# Initial dataset load into memory
+# Load dataset globally into memory
 df_queue = load_data()
 
 
 # =========================================================
-# HEADER BANNER & BRANDING
+# HEADER BANNER & ENVIRONMENT TOGGLE
 # =========================================================
 col_logo, col_header = st.columns([1, 6])
 with col_logo:
   if os.path.exists("logo.png"):
-    st.image("logo.png", width=120)
+    st.image("logo.png", width=115)
   else:
     st.markdown("### ⚡ **HYDAC**")
 
@@ -202,37 +198,36 @@ with col_header:
       """
     <div class="hydac-header-card">
         <div class="hydac-header-title">Enterprise Electronic Lab: Operations Command</div>
-        <div class="hydac-header-subtitle">HYDAC Technology Corp — Quality Control, Testing & Returns Management</div>
+        <div class="hydac-header-subtitle">HYDAC Technology Corp — Quality Control, Testing & Returns Operations</div>
     </div>
     """,
       unsafe_allow_html=True,
   )
 
 # Environment Mode Toggle
-toggle_col, status_col = st.columns([2, 3])
-with toggle_col:
-  is_local_mode = st.toggle(
-      "🖥️ Enable Local PC Mode (Folder Creation)", value=False
-  )
-
-with status_col:
-  if is_local_mode:
-    st.success(
-        "Mode: **Local PC** — Direct folder creation enabled at:\n`"
-        + LOCAL_CERTS_DIR
-        + "`"
-    )
-  else:
-    st.info(
-        "Mode: **Streamlit Cloud** — Read-only web mode (Folder creation"
-        " disabled)."
+with st.container(border=True):
+  toggle_col, status_col = st.columns([2, 3])
+  with toggle_col:
+    is_local_mode = st.toggle(
+        "🖥️ Enable Local PC Mode (Folder Creation)", value=False
     )
 
-st.divider()
+  with status_col:
+    if is_local_mode:
+      st.success(
+          "Mode: **Local PC** — Direct folder creation enabled at:\n`"
+          + LOCAL_CERTS_DIR
+          + "`"
+      )
+    else:
+      st.info(
+          "Mode: **Streamlit Cloud** — Read-only web mode (Folder creation"
+          " disabled)."
+      )
 
 
 # =========================================================
-# SIDEBAR NAVIGATION & CATEGORIZED MODULES
+# SIDEBAR NAVIGATION & CATEGORIZED WORKFLOWS
 # =========================================================
 with st.sidebar:
   st.markdown(
@@ -255,14 +250,14 @@ with st.sidebar:
       unsafe_allow_html=True,
   )
 
-  # Category Routing for Clean Organization
+  # Organized Category Navigation
   nav_category = st.selectbox(
-      "Select Module Category",
+      "Select Category",
       [
           "📊 Dashboard & Analytics",
-          "📥 Unit Logging & Intake",
-          "⚙️ Queue & Folder Operations",
-          "✉️ Outlook Communications",
+          "📥 Intake & Unit Logging",
+          "⚙️ Queue & Cert Operations",
+          "✉️ Outlook Email Sync",
           "🛠️ System Admin & Tools",
       ],
       label_visibility="collapsed",
@@ -280,7 +275,7 @@ with st.sidebar:
         ["View Queue Dashboard", "Monthly Volume Analytics"],
         label_visibility="collapsed",
     )
-  elif nav_category == "📥 Unit Logging & Intake":
+  elif nav_category == "📥 Intake & Unit Logging":
     nav_choice = st.radio(
         "Workflow",
         [
@@ -290,7 +285,7 @@ with st.sidebar:
         ],
         label_visibility="collapsed",
     )
-  elif nav_category == "⚙️ Queue & Folder Operations":
+  elif nav_category == "⚙️ Queue & Cert Operations":
     nav_choice = st.radio(
         "Workflow",
         [
@@ -300,7 +295,7 @@ with st.sidebar:
         ],
         label_visibility="collapsed",
     )
-  elif nav_category == "✉️ Outlook Communications":
+  elif nav_category == "✉️ Outlook Email Sync":
     nav_choice = st.radio(
         "Workflow",
         [
@@ -321,21 +316,22 @@ with st.sidebar:
         label_visibility="collapsed",
     )
 
-# Re-query fresh data on every interaction
+# Re-query fresh database records
 df_queue = load_data()
 
 
 # =========================================================
-# VIEW 1: QUEUE DASHBOARD
+# VIEW 1: EXECUTIVE QUEUE DASHBOARD
 # =========================================================
 if nav_choice == "View Queue Dashboard":
-  st.subheader("📊 Active Lab Queue Dashboard")
+  st.subheader("📊 Active Lab Queue Command Center")
 
   if df_queue.empty:
     st.warning("No records found in `lab_queue.db`.")
   else:
+    # Executive KPI Summary Cards
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Total Units in Queue", len(df_queue))
+    m1.metric("Total Active Units", len(df_queue))
 
     synced_emails_count = (
         df_queue["notes"]
@@ -352,18 +348,21 @@ if nav_choice == "View Queue Dashboard":
         if "rga_number" in df_queue.columns
         else 0
     )
-    m3.metric("RGAs Active", rga_count)
+    m3.metric("Active RGAs", rga_count)
 
     notif_count = (
         df_queue["notification_number"].dropna().replace("nan", "").ne("").sum()
         if "notification_number" in df_queue.columns
         else 0
     )
-    m4.metric("Notifications Active", notif_count)
+    m4.metric("Active Notifications", notif_count)
 
     st.markdown("---")
+
+    # Filter Bar
     search_term = st.text_input(
-        "🔍 Search / Filter Queue (RGA, Notification, Customer, Model, Serial Number):"
+        "🔍 Search Queue (RGA, Notification, Customer, Model, Serial Number):",
+        placeholder="Type RGA, Serial Number, or Customer Name...",
     )
 
     if search_term:
@@ -374,9 +373,13 @@ if nav_choice == "View Queue Dashboard":
     else:
       display_df = df_queue
 
-    st.dataframe(display_df, use_container_width=True)
+    # Display Queue Table inside Container Card
+    with st.container(border=True):
+      st.markdown("#### 📋 Current Queue Master Table")
+      st.dataframe(display_df, use_container_width=True, hide_index=True)
 
-    st.markdown("### 🔎 Unit Detail & Notes Inspection")
+    # Unit Inspector Tool
+    st.markdown("### 🔎 Deep Unit & Email Thread Inspection")
     unit_map = build_unit_dropdown_options(display_df)
 
     if unit_map:
@@ -388,27 +391,32 @@ if nav_choice == "View Queue Dashboard":
       selected_id = unit_map[selected_inspect_label]
       selected_row = display_df[display_df["id"] == selected_id].iloc[0]
 
-      with st.expander(f"📋 Details for Unit ID {selected_id}", expanded=True):
+      with st.expander(
+          f"📋 Unit Details — ID #{selected_id} | RGA:"
+          f" {selected_row.get('rga_number', 'N/A')}",
+          expanded=True,
+      ):
         c1, c2, c3 = st.columns(3)
-        c1.write(f"**RGA Number:** {selected_row.get('rga_number', 'N/A')}")
+        c1.write(f"**RGA Number:** `{selected_row.get('rga_number', 'N/A')}`")
         c2.write(
             "**Notification Number:**"
-            f" {selected_row.get('notification_number', 'N/A')}"
+            f" `{selected_row.get('notification_number', 'N/A')}`"
         )
         c3.write(
-            f"**Customer Name:** {selected_row.get('customer_name', 'N/A')}"
+            f"**Customer Name:** `{selected_row.get('customer_name', 'N/A')}`"
         )
 
         c4, c5, c6 = st.columns(3)
         c4.write(
             "**Model / Item:**"
-            f" {selected_row.get('model_series') or selected_row.get('model') or selected_row.get('item_description') or 'N/A'}"
+            f" `{selected_row.get('model_series') or selected_row.get('model') or selected_row.get('item_description') or 'N/A'}`"
         )
         c5.write(
-            f"**Serial Number:** {selected_row.get('serial_number', 'N/A')}"
+            "**Serial Number:**"
+            f" `{selected_row.get('serial_number', 'N/A')}`"
         )
         c6.write(
-            f"**Status / Location:** {selected_row.get('status', 'N/A')}"
+            f"**Status / Location:** `{selected_row.get('status', 'N/A')}`"
         )
 
         notes_val = str(selected_row.get("notes", "") or "")
@@ -434,7 +442,7 @@ if nav_choice == "View Queue Dashboard":
 # VIEW 2: LOG NEW ITEM (SINGLE)
 # =========================================================
 elif nav_choice == "Log New Item (Single)":
-  st.subheader("📝 Log New Unit into Queue")
+  st.subheader("📝 Log New Unit into Lab Queue")
   with st.form("new_unit_form"):
     c1, c2 = st.columns(2)
     f_rga = c1.text_input("RGA Number")
@@ -523,7 +531,7 @@ elif nav_choice == "Bulk Import & Staged Review":
       else:
         import_df = pd.read_excel(uploaded_file)
       st.markdown("#### Staged Data Preview")
-      st.dataframe(import_df.head(10))
+      st.dataframe(import_df.head(10), use_container_width=True)
 
       if st.button(
           "💾 Append Previewed Data to Queue Database", type="primary"
