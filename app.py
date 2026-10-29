@@ -6,10 +6,10 @@ import pandas as pd
 import streamlit as st
 
 # =========================================================
-# PAGE CONFIGURATION & HYDAC INDUSTRIAL UI THEME
+# PAGE CONFIGURATION & FUTURISTIC HYDAC RED THEME
 # =========================================================
 st.set_page_config(
-    page_title="HYDAC Lab Operations Command",
+    page_title="HYDAC Lab Operations Command OS",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -21,16 +21,23 @@ UPLOADS_DIR = r"C:\Users\Geoff.Hall\OneDrive - HYDAC Technology Corp\Desktop\Lab
 
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 
-# Modern High-Contrast Industrial UI (CSS)
+# Load FontAwesome & Inject High-Tech Dark Slate / Crimson Red Styling
 st.markdown(
     """
+    <!-- FontAwesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@600;700;800;900&display=swap" rel="stylesheet">
+
     <style>
-    :root {
-        --hydac-red: #E30613;
-        --hydac-dark: #0B0F17;
-        --hydac-card: #151C2C;
-        --hydac-slate: #1E293B;
-        --hydac-border: #2D3D58;
+    /* HYDAC Futuristic Dark Grid Background */
+    .stApp {
+        background-color: #090d16 !important;
+        background-image: radial-gradient(rgba(227, 6, 19, 0.15) 0.75px, transparent 0.75px), radial-gradient(rgba(255, 255, 255, 0.04) 0.75px, #090d16 0.75px) !important;
+        background-size: 30px 30px !important;
+        background-position: 0 0, 15px 15px !important;
+        font-family: 'Inter', sans-serif;
     }
 
     .main .block-container {
@@ -39,113 +46,174 @@ st.markdown(
         max-width: 96%;
     }
 
-    /* Header Banner */
+    h1, h2, h3, h4, .font-heading {
+        font-family: 'Montserrat', sans-serif !important;
+    }
+
+    /* Top Command Header Banner */
     .hydac-banner {
-        background: linear-gradient(135deg, #0B0F17 0%, #1E293B 100%);
-        border: 1px solid #2D3D58;
+        background: linear-gradient(135deg, #0B0F17 0%, #1E1B2E 50%, #151C2C 100%);
+        border: 1px solid #33121A;
         border-left: 6px solid #E30613;
-        border-radius: 10px;
+        border-radius: 16px;
         padding: 22px 28px;
         color: #FFFFFF;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        box-shadow: 0 8px 32px rgba(227, 6, 19, 0.2);
         margin-bottom: 20px;
+        position: relative;
+        overflow: hidden;
+    }
+    .hydac-banner::after {
+        content: "";
+        position: absolute;
+        top: -50%;
+        right: -10%;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(227, 6, 19, 0.12) 0%, transparent 70%);
+        pointer-events: none;
     }
     .hydac-title {
-        font-size: 1.95rem;
-        font-weight: 800;
+        font-size: 1.9rem;
+        font-weight: 900;
         color: #FFFFFF;
         margin: 0;
         letter-spacing: -0.5px;
         text-transform: uppercase;
+        font-family: 'Montserrat', sans-serif;
     }
     .hydac-subtitle {
-        font-size: 0.92rem;
+        font-size: 0.88rem;
         color: #94A3B8;
         margin-top: 4px;
         font-weight: 500;
     }
 
-    /* Age & Status Color Badges */
+    /* Metric Cards with Glowing Top Accent */
+    div[data-testid="stMetric"] {
+        background: rgba(21, 28, 44, 0.85) !important;
+        border: 1px solid #2D3D58 !important;
+        border-top: 3px solid #E30613 !important;
+        border-radius: 12px !important;
+        padding: 14px 18px !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4), 0 0 12px rgba(227, 6, 19, 0.15) !important;
+        backdrop-filter: blur(8px);
+    }
+    div[data-testid="stMetric"] label {
+        color: #94A3B8 !important;
+        font-weight: 700 !important;
+        font-size: 0.78rem !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.8px;
+    }
+    div[data-testid="stMetric"] [data-testid="stMetricValue"] {
+        color: #FFFFFF !important;
+        font-weight: 900 !important;
+        font-family: 'Montserrat', sans-serif !important;
+    }
+
+    /* Status & Age Color Badges */
     .badge-green {
-        background-color: #065F46;
+        background-color: rgba(6, 95, 70, 0.4);
         color: #34D399;
         padding: 4px 12px;
-        border-radius: 12px;
-        font-size: 0.8rem;
+        border-radius: 20px;
+        font-size: 0.78rem;
         font-weight: 700;
         display: inline-block;
         border: 1px solid #059669;
     }
     .badge-yellow {
-        background-color: #854D0E;
+        background-color: rgba(133, 77, 14, 0.4);
         color: #FDE047;
         padding: 4px 12px;
-        border-radius: 12px;
-        font-size: 0.8rem;
+        border-radius: 20px;
+        font-size: 0.78rem;
         font-weight: 700;
         display: inline-block;
         border: 1px solid #CA8A04;
     }
     .badge-red {
-        background-color: #991B1B;
-        color: #FCA5A5;
+        background-color: rgba(153, 27, 27, 0.5);
+        color: #FF8888;
         padding: 4px 12px;
-        border-radius: 12px;
-        font-size: 0.8rem;
-        font-weight: 700;
+        border-radius: 20px;
+        font-size: 0.78rem;
+        font-weight: 800;
         display: inline-block;
-        border: 1px solid #DC2626;
-        box-shadow: 0 0 8px rgba(220, 38, 38, 0.4);
+        border: 1px solid #E30613;
+        box-shadow: 0 0 12px rgba(227, 6, 19, 0.5);
     }
     .badge-assignee {
-        background-color: #1E3A8A;
+        background-color: rgba(30, 58, 138, 0.4);
         color: #93C5FD;
         padding: 4px 12px;
-        border-radius: 12px;
-        font-size: 0.8rem;
+        border-radius: 20px;
+        font-size: 0.78rem;
         font-weight: 700;
         display: inline-block;
         border: 1px solid #2563EB;
     }
     .badge-unassigned {
-        background-color: #374151;
-        color: #D1D5DB;
+        background-color: rgba(55, 65, 81, 0.5);
+        color: #E5E7EB;
         padding: 4px 12px;
-        border-radius: 12px;
-        font-size: 0.8rem;
+        border-radius: 20px;
+        font-size: 0.78rem;
         font-weight: 700;
         display: inline-block;
-        border: 1px solid #4B5563;
+        border: 1px solid #6B7280;
     }
 
-    /* Sidebar User Profile */
+    /* Sidebar Styling */
     .sidebar-user-card {
         background: #151C2C;
         border: 1px solid #2D3D58;
         border-left: 4px solid #E30613;
         padding: 14px 16px;
-        border-radius: 8px;
+        border-radius: 12px;
         color: #F8FAFC;
         margin-bottom: 15px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     }
     .sidebar-section-header {
-        font-size: 0.72rem;
+        font-size: 0.7rem;
         text-transform: uppercase;
         letter-spacing: 1.2px;
         color: #E30613;
-        font-weight: 800;
-        margin-top: 16px;
-        margin-bottom: 6px;
+        font-weight: 900;
+        margin-top: 18px;
+        margin-bottom: 8px;
     }
 
-    /* Primary Action Buttons */
+    /* Custom Futuristic Buttons */
     div.stButton > button[kind="primary"] {
-        background: linear-gradient(135deg, #E30613 0%, #A8000A 100%) !important;
+        background: linear-gradient(135deg, #E30613 0%, #99000B 100%) !important;
         color: #FFFFFF !important;
-        border: none !important;
+        border: 1px solid #FF3344 !important;
+        font-weight: 800 !important;
+        border-radius: 8px !important;
+        box-shadow: 0 4px 16px rgba(227, 6, 19, 0.4) !important;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        transition: all 0.2s ease-in-out;
+    }
+    div.stButton > button[kind="primary"]:hover {
+        background: linear-gradient(135deg, #FF1A27 0%, #C4000C 100%) !important;
+        box-shadow: 0 6px 20px rgba(227, 6, 19, 0.6) !important;
+        transform: translateY(-1px);
+    }
+
+    /* Expander Card Styling */
+    .streamlit-expanderHeader {
+        background-color: #151C2C !important;
+        border: 1px solid #2D3D58 !important;
+        border-radius: 10px !important;
+        color: #FFFFFF !important;
         font-weight: 700 !important;
-        border-radius: 6px !important;
-        box-shadow: 0 4px 12px rgba(227, 6, 19, 0.3) !important;
+    }
+    .streamlit-expanderHeader:hover {
+        border-color: #E30613 !important;
     }
     </style>
 """,
@@ -177,7 +245,6 @@ def init_db():
         )
     """)
 
-  # Ensure schema columns exist
   cursor.execute("PRAGMA table_info(queue)")
   existing_cols = [col[1] for col in cursor.fetchall()]
 
@@ -197,7 +264,7 @@ def init_db():
 
 
 def load_data():
-  """Loads queue data and calculates age in weeks for color coding."""
+  """Loads queue data and calculates age metrics for color badges."""
   init_db()
   conn = sqlite3.connect(DB_FILE)
   try:
@@ -215,7 +282,6 @@ def load_data():
     if "date_logged" not in df.columns or df["date_logged"].isnull().all():
       df["date_logged"] = datetime.now().strftime("%Y-%m-%d")
 
-    # Calculate age metrics
     df["parsed_date"] = pd.to_datetime(df["date_logged"], errors="coerce")
     now = datetime.now()
     df["age_days"] = (now - df["parsed_date"]).dt.days.fillna(0).astype(int)
@@ -225,7 +291,7 @@ def load_data():
 
 
 def reset_and_seed_db():
-  """Resets database with realistic parent/child RGA requests."""
+  """Resets database with realistic parent/child HYDAC RGA requests."""
   conn = sqlite3.connect(DB_FILE)
   cursor = conn.cursor()
   cursor.execute("DROP TABLE IF EXISTS queue")
@@ -247,7 +313,6 @@ def reset_and_seed_db():
     """)
 
   demo_data = [
-      # Parent RGA 60083000 (Multiple Child Serial Numbers)
       (
           "60083000",
           "20007503",
@@ -257,7 +322,7 @@ def reset_and_seed_db():
           "Under Testing",
           9,
           "Geo Hall",
-          "[Synced Email] High priority calibration for line 1.",
+          "[Synced Email] Customer requested high-priority calibration for main production line.",
           "",
           "2026-10-10",
       ),
@@ -270,7 +335,7 @@ def reset_and_seed_db():
           "Under Testing",
           9,
           "Geo Hall",
-          "Optical sensor benchmarking in progress.",
+          "Optical laser diode benchmarking on CalRig bench 1.",
           "",
           "2026-10-10",
       ),
@@ -283,11 +348,10 @@ def reset_and_seed_db():
           "Received in Lab",
           9,
           "Unassigned",
-          "Awaiting physical inspection on CalRig 2.",
+          "Physical intake inspection pending technician assignment.",
           "",
           "2026-10-10",
       ),
-      # Parent RGA 60083105 (Overdue - 8+ Weeks)
       (
           "60083105",
           "20007510",
@@ -297,7 +361,7 @@ def reset_and_seed_db():
           "Received in Lab",
           6,
           "Unassigned",
-          "Unit intake over 8 weeks old. Needs technician evaluation.",
+          "Unit intake over 8 weeks old. Needs warranty evaluation.",
           "",
           "2026-08-01",
       ),
@@ -310,25 +374,23 @@ def reset_and_seed_db():
           "Received in Lab",
           6,
           "Unassigned",
-          "Secondary pump module attached.",
+          "Secondary vacuum dehydration pump module attached.",
           "",
           "2026-08-01",
       ),
-      # Parent RGA 60083112 (5 to 7 Weeks)
       (
           "60083112",
           "20007522",
           "Komatsu Ltd.",
-          "FCU 1310 Filtration Unit",
+          "FCU 1310 Portable Filtration Unit",
           "FCU1310-88412-A",
           "Pending Customer Info",
           4,
           "Alex Rivera",
-          "Waiting on customer response for operating pressure limits.",
+          "Waiting on plant manager clarification regarding hydraulic operating pressure.",
           "",
           "2026-09-15",
       ),
-      # Parent RGA 60083145 (Fresh Intake)
       (
           "60083145",
           "20007548",
@@ -338,9 +400,22 @@ def reset_and_seed_db():
           "Received in Lab",
           7,
           "Unassigned",
-          "New field return intake today.",
+          "New field return intake logged today.",
           "",
           "2026-10-26",
+      ),
+      (
+          "60083150",
+          "20007555",
+          "Eaton Hydraulics",
+          "CS 2000 Particle Counter",
+          "CS2000-55102-D",
+          "Under Testing",
+          10,
+          "Unassigned",
+          "CRITICAL / EXPEDITE: Plant outage emergency service request.",
+          "",
+          "2026-10-25",
       ),
   ]
 
@@ -357,7 +432,7 @@ def reset_and_seed_db():
 
 
 def build_unit_dropdown_options(df):
-  """Formats selection labels for forms."""
+  """Formats selection labels for edit forms."""
   options_map = {}
   if df is None or df.empty:
     return options_map
@@ -385,7 +460,7 @@ df_queue = load_data()
 
 
 # =========================================================
-# HEADER BANNER & MODE TOGGLE
+# HEADER BANNER & SYSTEM ENVIRONMENT TOGGLE
 # =========================================================
 col_logo, col_header = st.columns([1, 6])
 with col_logo:
@@ -398,8 +473,16 @@ with col_header:
   st.markdown(
       """
     <div class="hydac-banner">
-        <div class="hydac-title">Enterprise Electronic Lab Command Center</div>
-        <div class="hydac-subtitle">HYDAC Technology Corp — Interactive Request Tracking & Operations Hub</div>
+        <div class="flex items-center gap-2 mb-1">
+            <span style="background:rgba(227,6,19,0.25); color:#FF8888; border:1px solid #E30613; padding:2px 10px; border-radius:12px; font-size:0.7rem; font-weight:800; text-transform:uppercase;">
+                <i class="fa-solid fa-microchip"></i> HYDAC OS v2.6
+            </span>
+            <span style="background:rgba(255,255,255,0.1); color:#E2E8F0; padding:2px 10px; border-radius:12px; font-size:0.7rem; font-weight:700;">
+                <i class="fa-solid fa-shield-halved"></i> Quality Control & Lab Command
+            </span>
+        </div>
+        <div class="hydac-title">Electronic Lab Operations Portal</div>
+        <div class="hydac-subtitle">HYDAC Technology Corp — Interactive Request Tracking, Unit Diagnostics & Assignment Portal</div>
     </div>
     """,
       unsafe_allow_html=True,
@@ -432,9 +515,11 @@ with st.sidebar:
   st.markdown(
       """
     <div class="sidebar-user-card">
-        <div style="font-size:0.7rem; color:#94A3B8; text-transform:uppercase; font-weight:700;">Logged In User</div>
-        <div style="font-size:1.15rem; font-weight:800; color:#FFFFFF;">Geo Hall</div>
-        <div style="font-size:0.8rem; color:#E30613; font-weight:700;">Lab Lead / Operations Lead</div>
+        <div style="font-size:0.68rem; color:#94A3B8; text-transform:uppercase; font-weight:800; letter-spacing:0.8px;">
+            <i class="fa-solid fa-user-shield text-red-500"></i> Active User Profile
+        </div>
+        <div style="font-size:1.15rem; font-weight:900; color:#FFFFFF; margin-top:2px; font-family:'Montserrat', sans-serif;">Geo Hall</div>
+        <div style="font-size:0.78rem; color:#FF8888; font-weight:700;">Lab Lead / Operations Lead</div>
     </div>
     """,
       unsafe_allow_html=True,
@@ -445,14 +530,15 @@ with st.sidebar:
 
   st.markdown("---")
   st.markdown(
-      '<div class="sidebar-section-header">MODULE CATEGORY</div>',
+      '<div class="sidebar-section-header"><i class="fa-solid fa-cubes"></i>'
+      " Module Category</div>",
       unsafe_allow_html=True,
   )
 
   nav_category = st.selectbox(
       "Category",
       [
-          "📊 Dashboard & Interactive Queue",
+          "📊 Command Dashboard",
           "📥 Intake & Unit Logging",
           "⚙️ Queue & Folder Operations",
           "✉️ Outlook Email Sync",
@@ -462,11 +548,12 @@ with st.sidebar:
   )
 
   st.markdown(
-      '<div class="sidebar-section-header">WORKFLOW VIEW</div>',
+      '<div class="sidebar-section-header"><i class="fa-solid fa-route"></i>'
+      " Workflow View</div>",
       unsafe_allow_html=True,
   )
 
-  if nav_category == "📊 Dashboard & Interactive Queue":
+  if nav_category == "📊 Command Dashboard":
     nav_choice = st.radio(
         "Workflow",
         ["View Queue Dashboard", "Monthly Volume Analytics"],
@@ -520,15 +607,15 @@ df_queue = load_data()
 # VIEW 1: INTERACTIVE COMMAND DASHBOARD (EXPANDABLE PARENT/CHILD)
 # =========================================================
 if nav_choice == "View Queue Dashboard":
-  st.subheader("📊 Active Lab Queue Command Center")
+  st.subheader("📊 Interactive Requests Command Center")
 
   if df_queue.empty:
     st.warning(
         "No active unit records found in database. Go to **Demo & Reset"
-        " Controls** in the sidebar to populate test data!"
+        " Controls** in the sidebar to populate sample data!"
     )
   else:
-    # Top KPI Metrics
+    # High-Tech Metrics Bar
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Total Line Items", len(df_queue))
 
@@ -543,14 +630,14 @@ if nav_choice == "View Queue Dashboard":
 
     st.markdown("---")
 
-    # Filters Bar
+    # Search & Filter Controls
     c_search, c_assignee = st.columns([3, 1])
     search_term = c_search.text_input(
         "🔍 Search Requests (RGA, Notification, Customer, Model, Serial Number):",
         placeholder="Type RGA, Serial Number, or Customer Name...",
     )
     assignee_filter = c_assignee.selectbox(
-        "Filter Assignment",
+        "Filter Ownership",
         ["All Requests", "Unassigned Only", "Assigned to Me (Geo Hall)"],
     )
 
@@ -569,7 +656,7 @@ if nav_choice == "View Queue Dashboard":
     # Sort oldest to newest
     filtered_df = filtered_df.sort_values(by="parsed_date", ascending=True)
 
-    st.markdown("### 📋 Interactive Pending Requests List")
+    st.markdown("### 📋 Active Request Queue")
 
     # Group by Parent RGA Number
     parent_groups = filtered_df.groupby("rga_number")
@@ -581,54 +668,61 @@ if nav_choice == "View Queue Dashboard":
       item_count = len(group)
       unassigned_in_group = (group["assigned_to"] == "Unassigned").sum()
 
-      # Determine Age Color Coding
+      # Age Badges
       if max_weeks <= 4:
         age_badge = (
-            f'<span class="badge-green">🟢 0-4 WEEKS ({max_weeks} wks)</span>'
+            f'<span class="badge-green"><i class="fa-solid'
+            f' fa-circle-check"></i> FRESH ({max_weeks} Wks)</span>'
         )
       elif max_weeks <= 7:
         age_badge = (
-            f'<span class="badge-yellow">🟡 5-7 WEEKS ({max_weeks} wks)</span>'
+            f'<span class="badge-yellow"><i class="fa-solid'
+            f' fa-clock"></i> ATTENTION ({max_weeks} Wks)</span>'
         )
       else:
         age_badge = (
-            f'<span class="badge-red">🔴 OVERDUE ({max_weeks} wks)</span>'
+            f'<span class="badge-red"><i class="fa-solid'
+            f' fa-triangle-exclamation"></i> OVERDUE ({max_weeks} Wks)</span>'
         )
 
-      # Assignee Pill
+      # Owner Pills
       if unassigned_in_group == item_count:
         assign_pill = (
-            '<span class="badge-unassigned">👤 UNASSIGNED</span>'
+            '<span class="badge-unassigned"><i class="fa-solid'
+            ' fa-user-slash"></i> UNASSIGNED</span>'
         )
       else:
         assignees = ", ".join(group["assigned_to"].unique())
-        assign_pill = f'<span class="badge-assignee">👤 {assignees}</span>'
+        assign_pill = (
+            f'<span class="badge-assignee"><i class="fa-solid fa-user-check"></i>'
+            f' {assignees}</span>'
+        )
 
-      expander_header = f"Parent RGA: {rga} | Customer: {cust_name} | {item_count} Child Item(s) | Notif: {notif_num}"
+      expander_label = f"Parent RGA: {rga}  |  Customer: {cust_name}  |  {item_count} Child Item(s)  |  Notif: {notif_num}"
 
-      with st.expander(expander_header, expanded=False):
+      with st.expander(expander_label, expanded=False):
         st.markdown(
-            f"**Age Status:** {age_badge} &nbsp;&nbsp;&nbsp; **Ownership:**"
-            f" {assign_pill}",
+            f"**Age Status:** {age_badge} &nbsp;&nbsp;&nbsp;&nbsp; **Ownership"
+            f" Status:** {assign_pill}",
             unsafe_allow_html=True,
         )
         st.markdown("---")
 
-        # Child Items Table / Inspection Cards
+        # Child Serial Items Loop
         for _, child in group.iterrows():
           c_item, c_assign, c_media = st.columns([2, 1.2, 1.8])
 
           with c_item:
-            st.markdown(f"##### Child Item ID #{child['id']}")
+            st.markdown(f"##### ⚙️ Child Item ID #{child['id']}")
             st.write(
-                f"**Model:** `{child.get('model_series', 'N/A')}`\n\n"
+                f"**Model Series:** `{child.get('model_series', 'N/A')}`\n\n"
                 f"**Serial Number:** `{child.get('serial_number', 'N/A')}`\n\n"
                 f"**Current Status:** `{child.get('status', 'Received in Lab')}`\n\n"
-                f"**Urgency Score:** `{child.get('urgency', 5)}/10`"
+                f"**Priority Score:** `{child.get('urgency', 5)}/10`"
             )
 
           with c_assign:
-            st.markdown("##### 👤 Assignment Control")
+            st.markdown("##### 👤 Request Assignment")
             current_owner = child.get("assigned_to", "Unassigned")
             st.write(f"Current Owner: **{current_owner}**")
 
@@ -650,9 +744,9 @@ if nav_choice == "View Queue Dashboard":
                 st.success("Claimed by Geo Hall!")
                 st.rerun()
 
-            # Reassign Dropdown
+            # Reassignment Selector
             new_assignee = st.selectbox(
-                "Assign To:",
+                "Reassign To:",
                 ["Unassigned", "Geo Hall", "Alex Rivera", "Tech Lab Team B"],
                 index=[
                     "Unassigned",
@@ -667,7 +761,7 @@ if nav_choice == "View Queue Dashboard":
             )
             if new_assignee != current_owner:
               if st.button(
-                  "💾 Update Assignment", key=f"save_assign_{child['id']}"
+                  "💾 Save Assignment", key=f"save_assign_{child['id']}"
               ):
                 conn = sqlite3.connect(DB_FILE)
                 cursor = conn.cursor()
@@ -681,20 +775,18 @@ if nav_choice == "View Queue Dashboard":
                 st.rerun()
 
           with c_media:
-            st.markdown("##### 📷 Media & Notes History")
+            st.markdown("##### 📷 Inspection Photo & Files")
 
-            # Display uploaded photo if exists
             photo_file = child.get("photo_path", "")
             if photo_file and os.path.exists(photo_file):
               st.image(
                   photo_file,
-                  caption=f"Attached Photo - Unit ID #{child['id']}",
+                  caption=f"Attached Inspection Image - Unit ID #{child['id']}",
                   width=220,
               )
 
-            # Upload Photo Control
             uploaded_img = st.file_uploader(
-                "Attach Photo / Inspection Image:",
+                "Attach Photo / Defect Image:",
                 type=["png", "jpg", "jpeg"],
                 key=f"photo_{child['id']}",
             )
@@ -712,24 +804,23 @@ if nav_choice == "View Queue Dashboard":
               )
               conn.commit()
               conn.close()
-              st.success("Photo attached successfully!")
+              st.success("Inspection photo uploaded!")
               st.rerun()
 
-          # Notes history & append note box
           st.text_area(
-              "Notes / Communication History:",
+              "Activity Log & Communication History:",
               value=str(child.get("notes", "") or ""),
-              height=100,
+              height=90,
               disabled=True,
               key=f"notes_disp_{child['id']}",
           )
 
           with st.form(key=f"add_note_form_{child['id']}"):
             new_note_entry = st.text_input(
-                "Append New Outcome / Test Note:",
-                placeholder="Type inspection result...",
+                "Append Test Log / Outcome Note:",
+                placeholder="Type diagnostic update...",
             )
-            if st.form_submit_button("💬 Append Note"):
+            if st.form_submit_button("💬 Append Log Note"):
               if new_note_entry:
                 conn = sqlite3.connect(DB_FILE)
                 cursor = conn.cursor()
@@ -743,7 +834,7 @@ if nav_choice == "View Queue Dashboard":
                 )
                 conn.commit()
                 conn.close()
-                st.success("Note appended!")
+                st.success("Note appended to unit record!")
                 st.rerun()
 
           st.divider()
@@ -752,7 +843,7 @@ if nav_choice == "View Queue Dashboard":
 # VIEW 2: LOG NEW ITEM (SINGLE)
 # =========================================================
 elif nav_choice == "Log New Item (Single)":
-  st.subheader("📝 Log New Unit into Lab Queue")
+  st.subheader("📝 Log New Request into Lab Queue")
   with st.form("new_unit_form"):
     c1, c2 = st.columns(2)
     f_rga = c1.text_input("Parent RGA Number*")
@@ -781,7 +872,7 @@ elif nav_choice == "Log New Item (Single)":
     )
     f_notes = st.text_area("Initial Intake Notes")
 
-    submit_btn = st.form_submit_button("➕ Log Unit into Queue", type="primary")
+    submit_btn = st.form_submit_button("➕ Log Request into Queue", type="primary")
     if submit_btn:
       if f_rga and f_sn and f_model:
         conn = sqlite3.connect(DB_FILE)
@@ -1257,7 +1348,9 @@ elif nav_choice == "Monthly Volume Analytics":
   else:
     c1, c2, c3 = st.columns(3)
     c1.metric("Total Line Items", len(df_queue))
-    c2.metric("Unassigned Items", (df_queue["assigned_to"] == "Unassigned").sum())
+    c2.metric(
+        "Unassigned Items", (df_queue["assigned_to"] == "Unassigned").sum()
+    )
     c3.metric("Critical Priority Units", (df_queue["urgency"] >= 8).sum())
 
     st.markdown("---")
