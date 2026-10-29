@@ -1,13 +1,12 @@
 import io
 import os
-import random
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import datetime
 import pandas as pd
 import streamlit as st
 
 # =========================================================
-# PAGE CONFIGURATION & FUTURISTIC HYDAC THEME
+# PAGE CONFIGURATION & HYDAC INDUSTRIAL UI THEME
 # =========================================================
 st.set_page_config(
     page_title="HYDAC Lab Operations Command",
@@ -18,19 +17,19 @@ st.set_page_config(
 
 DB_FILE = "lab_queue.db"
 LOCAL_CERTS_DIR = r"C:\Users\Geoff.Hall\OneDrive - HYDAC Technology Corp\Desktop\LabQueueTracker\Certs"
+UPLOADS_DIR = r"C:\Users\Geoff.Hall\OneDrive - HYDAC Technology Corp\Desktop\LabQueueTracker\Uploads"
+
+os.makedirs(UPLOADS_DIR, exist_ok=True)
 
 # Modern High-Contrast Industrial UI (CSS)
 st.markdown(
     """
     <style>
-    /* HYDAC Dark Industrial Palette */
     :root {
         --hydac-red: #E30613;
-        --hydac-red-glow: rgba(227, 6, 19, 0.25);
         --hydac-dark: #0B0F17;
         --hydac-card: #151C2C;
         --hydac-slate: #1E293B;
-        --hydac-text: #F8FAFC;
         --hydac-border: #2D3D58;
     }
 
@@ -40,7 +39,7 @@ st.markdown(
         max-width: 96%;
     }
 
-    /* Futuristic Header Banner */
+    /* Header Banner */
     .hydac-banner {
         background: linear-gradient(135deg, #0B0F17 0%, #1E293B 100%);
         border: 1px solid #2D3D58;
@@ -66,57 +65,60 @@ st.markdown(
         font-weight: 500;
     }
 
-    /* KPI Metric Cards */
-    div[data-testid="stMetric"] {
-        background-color: #151C2C !important;
-        border: 1px solid #2D3D58 !important;
-        border-top: 3px solid #E30613 !important;
-        border-radius: 8px !important;
-        padding: 14px 18px !important;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
-    }
-    div[data-testid="stMetric"] label {
-        color: #94A3B8 !important;
-        font-weight: 700 !important;
-        font-size: 0.8rem !important;
-        text-transform: uppercase !important;
-    }
-    div[data-testid="stMetric"] [data-testid="stMetricValue"] {
-        color: #FFFFFF !important;
-        font-weight: 800 !important;
-    }
-
-    /* Status Badges */
-    .badge-email {
-        background-color: #059669;
-        color: #ECFDF5;
-        padding: 3px 10px;
+    /* Age & Status Color Badges */
+    .badge-green {
+        background-color: #065F46;
+        color: #34D399;
+        padding: 4px 12px;
         border-radius: 12px;
-        font-size: 0.78rem;
+        font-size: 0.8rem;
         font-weight: 700;
         display: inline-block;
+        border: 1px solid #059669;
     }
-    .badge-reply {
-        background-color: #2563EB;
-        color: #EFF6FF;
-        padding: 3px 10px;
+    .badge-yellow {
+        background-color: #854D0E;
+        color: #FDE047;
+        padding: 4px 12px;
         border-radius: 12px;
-        font-size: 0.78rem;
+        font-size: 0.8rem;
         font-weight: 700;
         display: inline-block;
+        border: 1px solid #CA8A04;
     }
-    .badge-urgent {
-        background-color: #E30613;
-        color: #FFFFFF;
-        padding: 3px 10px;
+    .badge-red {
+        background-color: #991B1B;
+        color: #FCA5A5;
+        padding: 4px 12px;
         border-radius: 12px;
-        font-size: 0.78rem;
-        font-weight: 800;
+        font-size: 0.8rem;
+        font-weight: 700;
         display: inline-block;
-        box-shadow: 0 0 8px rgba(227, 6, 19, 0.5);
+        border: 1px solid #DC2626;
+        box-shadow: 0 0 8px rgba(220, 38, 38, 0.4);
+    }
+    .badge-assignee {
+        background-color: #1E3A8A;
+        color: #93C5FD;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        display: inline-block;
+        border: 1px solid #2563EB;
+    }
+    .badge-unassigned {
+        background-color: #374151;
+        color: #D1D5DB;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        display: inline-block;
+        border: 1px solid #4B5563;
     }
 
-    /* Sidebar Styling */
+    /* Sidebar User Profile */
     .sidebar-user-card {
         background: #151C2C;
         border: 1px solid #2D3D58;
@@ -136,7 +138,7 @@ st.markdown(
         margin-bottom: 6px;
     }
 
-    /* Form Buttons */
+    /* Primary Action Buttons */
     div.stButton > button[kind="primary"] {
         background: linear-gradient(135deg, #E30613 0%, #A8000A 100%) !important;
         color: #FFFFFF !important;
@@ -145,9 +147,6 @@ st.markdown(
         border-radius: 6px !important;
         box-shadow: 0 4px 12px rgba(227, 6, 19, 0.3) !important;
     }
-    div.stButton > button[kind="primary"]:hover {
-        background: linear-gradient(135deg, #FF1A27 0%, #C4000C 100%) !important;
-    }
     </style>
 """,
     unsafe_allow_html=True,
@@ -155,10 +154,10 @@ st.markdown(
 
 
 # =========================================================
-# DATABASE INIT & SCHEMA AUTO-REPAIR
+# DATABASE INIT & SCHEMA REPAIR
 # =========================================================
 def init_db():
-  """Ensures the SQLite database table and all required columns exist."""
+  """Ensures SQLite schema exists with assignment and photo support."""
   conn = sqlite3.connect(DB_FILE)
   cursor = conn.cursor()
   cursor.execute("""
@@ -171,15 +170,23 @@ def init_db():
             serial_number TEXT,
             status TEXT,
             urgency INTEGER DEFAULT 5,
+            assigned_to TEXT DEFAULT 'Unassigned',
             notes TEXT,
+            photo_path TEXT,
             date_logged TEXT
         )
     """)
 
-  # Check missing columns
+  # Ensure schema columns exist
   cursor.execute("PRAGMA table_info(queue)")
   existing_cols = [col[1] for col in cursor.fetchall()]
 
+  if "assigned_to" not in existing_cols:
+    cursor.execute(
+        "ALTER TABLE queue ADD COLUMN assigned_to TEXT DEFAULT 'Unassigned'"
+    )
+  if "photo_path" not in existing_cols:
+    cursor.execute("ALTER TABLE queue ADD COLUMN photo_path TEXT")
   if "urgency" not in existing_cols:
     cursor.execute("ALTER TABLE queue ADD COLUMN urgency INTEGER DEFAULT 5")
   if "date_logged" not in existing_cols:
@@ -190,7 +197,7 @@ def init_db():
 
 
 def load_data():
-  """Loads data safely from SQLite and returns a standardized pandas DataFrame."""
+  """Loads queue data and calculates age in weeks for color coding."""
   init_db()
   conn = sqlite3.connect(DB_FILE)
   try:
@@ -201,18 +208,24 @@ def load_data():
     conn.close()
 
   if not df.empty:
-    if "urgency" not in df.columns:
-      df["urgency"] = 5
-    df["urgency"] = df["urgency"].fillna(5).astype(int)
+    if "assigned_to" not in df.columns:
+      df["assigned_to"] = "Unassigned"
+    df["assigned_to"] = df["assigned_to"].fillna("Unassigned")
 
     if "date_logged" not in df.columns or df["date_logged"].isnull().all():
       df["date_logged"] = datetime.now().strftime("%Y-%m-%d")
+
+    # Calculate age metrics
+    df["parsed_date"] = pd.to_datetime(df["date_logged"], errors="coerce")
+    now = datetime.now()
+    df["age_days"] = (now - df["parsed_date"]).dt.days.fillna(0).astype(int)
+    df["age_weeks"] = (df["age_days"] / 7).round(1)
 
   return df
 
 
 def reset_and_seed_db():
-  """Completely resets database and seeds 10 realistic HYDAC Lab records."""
+  """Resets database with realistic parent/child RGA requests."""
   conn = sqlite3.connect(DB_FILE)
   cursor = conn.cursor()
   cursor.execute("DROP TABLE IF EXISTS queue")
@@ -226,23 +239,55 @@ def reset_and_seed_db():
             serial_number TEXT,
             status TEXT,
             urgency INTEGER DEFAULT 5,
+            assigned_to TEXT DEFAULT 'Unassigned',
             notes TEXT,
+            photo_path TEXT,
             date_logged TEXT
         )
     """)
 
   demo_data = [
+      # Parent RGA 60083000 (Multiple Child Serial Numbers)
+      (
+          "60083000",
+          "20007503",
+          "Caterpillar Inc.",
+          "CS 1000 Contamination Sensor",
+          "000SS01831K0000001",
+          "Under Testing",
+          9,
+          "Geo Hall",
+          "[Synced Email] High priority calibration for line 1.",
+          "",
+          "2026-10-10",
+      ),
+      (
+          "60083000",
+          "20007503",
+          "Caterpillar Inc.",
+          "CS 1000 Contamination Sensor",
+          "000SS01831K0000002",
+          "Under Testing",
+          9,
+          "Geo Hall",
+          "Optical sensor benchmarking in progress.",
+          "",
+          "2026-10-10",
+      ),
       (
           "60083000",
           "20007503",
           "Caterpillar Inc.",
           "CS 1000 Contamination Sensor",
           "000SS01831K0000003",
-          "Under Testing",
+          "Received in Lab",
           9,
-          "[Synced Email from Returns] Customer requesting urgent turnaround for lab calibration.",
-          "2026-10-12",
+          "Unassigned",
+          "Awaiting physical inspection on CalRig 2.",
+          "",
+          "2026-10-10",
       ),
+      # Parent RGA 60083105 (Overdue - 8+ Weeks)
       (
           "60083105",
           "20007510",
@@ -250,104 +295,59 @@ def reset_and_seed_db():
           "FAM-10 Fluid Conditioning Unit",
           "FAM10-998231-A",
           "Received in Lab",
-          5,
-          "Standard warranty intake review pending technician assignment.",
-          "2026-10-18",
+          6,
+          "Unassigned",
+          "Unit intake over 8 weeks old. Needs technician evaluation.",
+          "",
+          "2026-08-01",
       ),
+      (
+          "60083105",
+          "20007510",
+          "John Deere Corp.",
+          "FAM-10 Fluid Conditioning Unit",
+          "FAM10-998231-B",
+          "Received in Lab",
+          6,
+          "Unassigned",
+          "Secondary pump module attached.",
+          "",
+          "2026-08-01",
+      ),
+      # Parent RGA 60083112 (5 to 7 Weeks)
       (
           "60083112",
           "20007522",
           "Komatsu Ltd.",
-          "FCU 1310 Portable Filtration Unit",
-          "FCU1310-88412-B",
+          "FCU 1310 Filtration Unit",
+          "FCU1310-88412-A",
           "Pending Customer Info",
-          3,
-          "Waiting on customer clarification regarding operating hydraulic pressure.",
-          "2026-10-05",
+          4,
+          "Alex Rivera",
+          "Waiting on customer response for operating pressure limits.",
+          "",
+          "2026-09-15",
       ),
-      (
-          "60083120",
-          "20007530",
-          "Bosch Rexroth",
-          "Lab CalRig Sensor Array",
-          "CAL-90021-X",
-          "Completed",
-          2,
-          "[Synced Sent Reply] Calibration certificate generated and emailed to supervisor.",
-          "2026-09-28",
-      ),
+      # Parent RGA 60083145 (Fresh Intake)
       (
           "60083145",
           "20007548",
           "Parker Hannifin",
-          "AS 1000 AquaSensor Unit",
+          "AS 1000 AquaSensor",
           "AS1000-77621-C",
           "Received in Lab",
           7,
-          "Urgent field replacement requested under RGA 60083145.",
-          "2026-10-22",
-      ),
-      (
-          "60083150",
-          "20007555",
-          "Eaton Hydraulics",
-          "CS 2000 Particle Counter",
-          "CS2000-55102-D",
-          "Under Testing",
-          8,
-          "Laser diode calibration in progress on CalRig bench 2.",
-          "2026-10-15",
-      ),
-      (
-          "60083162",
-          "20007560",
-          "General Electric",
-          "HLP 6 Hydraulic Lab Pump",
-          "HLP6-33910-E",
-          "Received in Lab",
-          4,
-          "Visual inspection completed. Awaiting fluid analysis test results.",
-          "2026-10-20",
-      ),
-      (
-          "60083170",
-          "20007572",
-          "Volvo Construction",
-          "FCU 2000 Dehydration Unit",
-          "FCU2000-11209-F",
-          "Completed",
-          1,
-          "Repaired pump seal and dispatched back to customer via freight.",
-          "2026-09-15",
-      ),
-      (
-          "60083185",
-          "20007581",
-          "Siemens Energy",
-          "KineSys Servo Controller",
-          "KINE-88201-G",
-          "Pending Customer Info",
-          6,
-          "[Synced Email from Returns] Technical support requested failure logs from plant manager.",
-          "2026-10-10",
-      ),
-      (
-          "60083190",
-          "20007599",
-          "Danfoss Power",
-          "CS 1000 Particle Counter",
-          "CS1000-44109-H",
-          "Under Testing",
-          10,
-          "CRITICAL / EXPEDITE: High priority warranty evaluation for plant outage.",
-          "2026-10-25",
+          "Unassigned",
+          "New field return intake today.",
+          "",
+          "2026-10-26",
       ),
   ]
 
   cursor.executemany(
       """
-        INSERT INTO queue (rga_number, notification_number, customer_name, model_series, serial_number, status, urgency, notes, date_logged)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO queue (rga_number, notification_number, customer_name, model_series, serial_number, status, urgency, assigned_to, notes, photo_path, date_logged)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """,
       demo_data,
   )
@@ -357,7 +357,7 @@ def reset_and_seed_db():
 
 
 def build_unit_dropdown_options(df):
-  """Formats dropdown options into descriptive labels."""
+  """Formats selection labels for forms."""
   options_map = {}
   if df is None or df.empty:
     return options_map
@@ -365,10 +365,6 @@ def build_unit_dropdown_options(df):
   for _, row in df.iterrows():
     unit_id = row.get("id", "")
     rga = str(row.get("rga_number", "")).replace("nan", "").strip() or "N/A"
-    notif = (
-        str(row.get("notification_number", "")).replace("nan", "").strip()
-        or "N/A"
-    )
     model = (
         row.get("model_series")
         or row.get("model")
@@ -376,20 +372,20 @@ def build_unit_dropdown_options(df):
         or "N/A"
     )
     sn = str(row.get("serial_number", "")).replace("nan", "").strip() or "N/A"
-    urgency = row.get("urgency", 5)
+    assigned = row.get("assigned_to", "Unassigned")
 
-    label = f"RGA: {rga} | Notif: {notif} | {model} | SN: {sn} [Priority: {urgency}/10] (ID: {unit_id})"
+    label = f"RGA: {rga} | {model} | SN: {sn} [Assigned: {assigned}] (ID: {unit_id})"
     options_map[label] = unit_id
 
   return options_map
 
 
-# Load current queue state
+# Load state
 df_queue = load_data()
 
 
 # =========================================================
-# HEADER BANNER & SYSTEM ENVIRONMENT TOGGLE
+# HEADER BANNER & MODE TOGGLE
 # =========================================================
 col_logo, col_header = st.columns([1, 6])
 with col_logo:
@@ -403,13 +399,12 @@ with col_header:
       """
     <div class="hydac-banner">
         <div class="hydac-title">Enterprise Electronic Lab Command Center</div>
-        <div class="hydac-subtitle">HYDAC Technology Corp — Quality Control, Calibration & Returns Management</div>
+        <div class="hydac-subtitle">HYDAC Technology Corp — Interactive Request Tracking & Operations Hub</div>
     </div>
     """,
       unsafe_allow_html=True,
   )
 
-# Environment Mode Switch
 with st.container(border=True):
   toggle_col, status_col = st.columns([2, 3])
   with toggle_col:
@@ -420,24 +415,24 @@ with st.container(border=True):
   with status_col:
     if is_local_mode:
       st.success(
-          "Mode: **Local PC** — Direct local workstation folder generation"
-          f" enabled at:\n`{LOCAL_CERTS_DIR}`"
+          "Mode: **Local PC** — Direct local cert folder generation enabled"
+          f" at:\n`{LOCAL_CERTS_DIR}`"
       )
     else:
       st.info(
-          "Mode: **Streamlit Cloud** — Read-only web mode (Local file system"
-          " creation restricted)."
+          "Mode: **Streamlit Cloud** — Read-only web mode (Local file creation"
+          " restricted)."
       )
 
 
 # =========================================================
-# SIDEBAR NAVIGATION & CATEGORY ROUTING
+# SIDEBAR NAVIGATION
 # =========================================================
 with st.sidebar:
   st.markdown(
       """
     <div class="sidebar-user-card">
-        <div style="font-size:0.7rem; color:#94A3B8; text-transform:uppercase; font-weight:700;">Active User</div>
+        <div style="font-size:0.7rem; color:#94A3B8; text-transform:uppercase; font-weight:700;">Logged In User</div>
         <div style="font-size:1.15rem; font-weight:800; color:#FFFFFF;">Geo Hall</div>
         <div style="font-size:0.8rem; color:#E30613; font-weight:700;">Lab Lead / Operations Lead</div>
     </div>
@@ -457,7 +452,7 @@ with st.sidebar:
   nav_category = st.selectbox(
       "Category",
       [
-          "📊 Dashboard & Analytics",
+          "📊 Dashboard & Interactive Queue",
           "📥 Intake & Unit Logging",
           "⚙️ Queue & Folder Operations",
           "✉️ Outlook Email Sync",
@@ -471,7 +466,7 @@ with st.sidebar:
       unsafe_allow_html=True,
   )
 
-  if nav_category == "📊 Dashboard & Analytics":
+  if nav_category == "📊 Dashboard & Interactive Queue":
     nav_choice = st.radio(
         "Workflow",
         ["View Queue Dashboard", "Monthly Volume Analytics"],
@@ -518,12 +513,11 @@ with st.sidebar:
         label_visibility="collapsed",
     )
 
-# Refresh dataset state
 df_queue = load_data()
 
 
 # =========================================================
-# VIEW 1: EXECUTIVE COMMAND CENTER (DASHBOARD)
+# VIEW 1: INTERACTIVE COMMAND DASHBOARD (EXPANDABLE PARENT/CHILD)
 # =========================================================
 if nav_choice == "View Queue Dashboard":
   st.subheader("📊 Active Lab Queue Command Center")
@@ -534,46 +528,37 @@ if nav_choice == "View Queue Dashboard":
         " Controls** in the sidebar to populate test data!"
     )
   else:
-    # Executive KPI Summary Cards
+    # Top KPI Metrics
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Total Active Units", len(df_queue))
+    m1.metric("Total Line Items", len(df_queue))
 
-    high_urgency = (df_queue["urgency"] >= 8).sum()
-    m2.metric("Critical / Rush Units (8-10)", high_urgency)
+    unassigned_count = (df_queue["assigned_to"] == "Unassigned").sum()
+    m2.metric("Unassigned Requests", unassigned_count)
 
-    synced_emails = (
-        df_queue["notes"]
-        .dropna()
-        .apply(lambda x: "[Synced" in str(x))
-        .sum()
-        if "notes" in df_queue.columns
-        else 0
-    )
-    m3.metric("Units with Synced Emails", synced_emails)
+    overdue_count = (df_queue["age_weeks"] >= 8).sum()
+    m3.metric("Overdue (8+ Weeks)", overdue_count)
 
-    rga_count = (
-        df_queue["rga_number"].dropna().replace("nan", "").ne("").sum()
-        if "rga_number" in df_queue.columns
-        else 0
-    )
-    m4.metric("Active RGAs", rga_count)
+    my_assigned = (df_queue["assigned_to"] == "Geo Hall").sum()
+    m4.metric("Assigned to Me", my_assigned)
 
     st.markdown("---")
 
-    # Search and Filter Controls
-    c_search, c_status = st.columns([3, 1])
+    # Filters Bar
+    c_search, c_assignee = st.columns([3, 1])
     search_term = c_search.text_input(
-        "🔍 Real-Time Filter (RGA, Notification, Customer, Model, Serial Number):",
-        placeholder="Search Caterpillar, CS 1000, 60083000...",
+        "🔍 Search Requests (RGA, Notification, Customer, Model, Serial Number):",
+        placeholder="Type RGA, Serial Number, or Customer Name...",
     )
-    status_filter = c_status.selectbox(
-        "Filter by Status",
-        ["All Statuses"] + list(df_queue["status"].dropna().unique()),
+    assignee_filter = c_assignee.selectbox(
+        "Filter Assignment",
+        ["All Requests", "Unassigned Only", "Assigned to Me (Geo Hall)"],
     )
 
     filtered_df = df_queue.copy()
-    if status_filter != "All Statuses":
-      filtered_df = filtered_df[filtered_df["status"] == status_filter]
+    if assignee_filter == "Unassigned Only":
+      filtered_df = filtered_df[filtered_df["assigned_to"] == "Unassigned"]
+    elif assignee_filter == "Assigned to Me (Geo Hall)":
+      filtered_df = filtered_df[filtered_df["assigned_to"] == "Geo Hall"]
 
     if search_term:
       filter_mask = filtered_df.astype(str).apply(
@@ -581,67 +566,187 @@ if nav_choice == "View Queue Dashboard":
       ).any(axis=1)
       filtered_df = filtered_df[filter_mask]
 
-    # Master Table Display
-    with st.container(border=True):
-      st.markdown("#### 📋 Current Lab Queue Master Table")
-      st.dataframe(filtered_df, use_container_width=True, hide_index=True)
+    # Sort oldest to newest
+    filtered_df = filtered_df.sort_values(by="parsed_date", ascending=True)
 
-    # Unit Inspection & Quick Action Panel
-    st.markdown("### 🔎 Deep Unit Inspection & Correspondence History")
-    unit_map = build_unit_dropdown_options(filtered_df)
+    st.markdown("### 📋 Interactive Pending Requests List")
 
-    if unit_map:
-      selected_inspect_label = st.selectbox(
-          "Select Unit to Inspect Details & Synced Notes:",
-          options=list(unit_map.keys()),
-          key="inspect_select",
-      )
-      selected_id = unit_map[selected_inspect_label]
-      selected_row = filtered_df[filtered_df["id"] == selected_id].iloc[0]
+    # Group by Parent RGA Number
+    parent_groups = filtered_df.groupby("rga_number")
 
-      with st.expander(
-          f"📋 Unit Summary — ID #{selected_id} | RGA:"
-          f" {selected_row.get('rga_number', 'N/A')}",
-          expanded=True,
-      ):
-        c1, c2, c3, c4 = st.columns(4)
-        c1.write(f"**RGA Number:** `{selected_row.get('rga_number', 'N/A')}`")
-        c2.write(
-            "**Notification:**"
-            f" `{selected_row.get('notification_number', 'N/A')}`"
+    for rga, group in parent_groups:
+      max_weeks = group["age_weeks"].max()
+      cust_name = group["customer_name"].iloc[0] or "N/A"
+      notif_num = group["notification_number"].iloc[0] or "N/A"
+      item_count = len(group)
+      unassigned_in_group = (group["assigned_to"] == "Unassigned").sum()
+
+      # Determine Age Color Coding
+      if max_weeks <= 4:
+        age_badge = (
+            f'<span class="badge-green">🟢 0-4 WEEKS ({max_weeks} wks)</span>'
         )
-        c3.write(f"**Customer:** `{selected_row.get('customer_name', 'N/A')}`")
-        c4.write(f"**Urgency:** `{selected_row.get('urgency', 5)}/10`")
-
-        c5, c6, c7, c8 = st.columns(4)
-        c5.write(f"**Model:** `{selected_row.get('model_series', 'N/A')}`")
-        c6.write(f"**Serial Number:** `{selected_row.get('serial_number', 'N/A')}`")
-        c7.write(f"**Status:** `{selected_row.get('status', 'N/A')}`")
-        c8.write(f"**Date Logged:** `{selected_row.get('date_logged', 'N/A')}`")
-
-        notes_val = str(selected_row.get("notes", "") or "")
-        if "[Synced Email from Returns" in notes_val:
-          st.markdown(
-              '<span class="badge-email">⭐ Returns Email Synced</span>',
-              unsafe_allow_html=True,
-          )
-        if "[Synced Sent Reply" in notes_val:
-          st.markdown(
-              '<span class="badge-reply">✅ Outbox Reply Sent</span>',
-              unsafe_allow_html=True,
-          )
-        if int(selected_row.get("urgency", 5)) >= 8:
-          st.markdown(
-              '<span class="badge-urgent">🔥 CRITICAL / EXPEDITE</span>',
-              unsafe_allow_html=True,
-          )
-
-        st.text_area(
-            "Full Unit Activity & Email Notes History:",
-            value=notes_val,
-            height=200,
-            disabled=True,
+      elif max_weeks <= 7:
+        age_badge = (
+            f'<span class="badge-yellow">🟡 5-7 WEEKS ({max_weeks} wks)</span>'
         )
+      else:
+        age_badge = (
+            f'<span class="badge-red">🔴 OVERDUE ({max_weeks} wks)</span>'
+        )
+
+      # Assignee Pill
+      if unassigned_in_group == item_count:
+        assign_pill = (
+            '<span class="badge-unassigned">👤 UNASSIGNED</span>'
+        )
+      else:
+        assignees = ", ".join(group["assigned_to"].unique())
+        assign_pill = f'<span class="badge-assignee">👤 {assignees}</span>'
+
+      expander_header = f"Parent RGA: {rga} | Customer: {cust_name} | {item_count} Child Item(s) | Notif: {notif_num}"
+
+      with st.expander(expander_header, expanded=False):
+        st.markdown(
+            f"**Age Status:** {age_badge} &nbsp;&nbsp;&nbsp; **Ownership:**"
+            f" {assign_pill}",
+            unsafe_allow_html=True,
+        )
+        st.markdown("---")
+
+        # Child Items Table / Inspection Cards
+        for _, child in group.iterrows():
+          c_item, c_assign, c_media = st.columns([2, 1.2, 1.8])
+
+          with c_item:
+            st.markdown(f"##### Child Item ID #{child['id']}")
+            st.write(
+                f"**Model:** `{child.get('model_series', 'N/A')}`\n\n"
+                f"**Serial Number:** `{child.get('serial_number', 'N/A')}`\n\n"
+                f"**Current Status:** `{child.get('status', 'Received in Lab')}`\n\n"
+                f"**Urgency Score:** `{child.get('urgency', 5)}/10`"
+            )
+
+          with c_assign:
+            st.markdown("##### 👤 Assignment Control")
+            current_owner = child.get("assigned_to", "Unassigned")
+            st.write(f"Current Owner: **{current_owner}**")
+
+            # Quick Claim Button
+            if current_owner == "Unassigned":
+              if st.button(
+                  "🖐️ Claim Request",
+                  key=f"claim_{child['id']}",
+                  type="primary",
+              ):
+                conn = sqlite3.connect(DB_FILE)
+                cursor = conn.cursor()
+                cursor.execute(
+                    "UPDATE queue SET assigned_to='Geo Hall' WHERE id=?",
+                    (child["id"],),
+                )
+                conn.commit()
+                conn.close()
+                st.success("Claimed by Geo Hall!")
+                st.rerun()
+
+            # Reassign Dropdown
+            new_assignee = st.selectbox(
+                "Assign To:",
+                ["Unassigned", "Geo Hall", "Alex Rivera", "Tech Lab Team B"],
+                index=[
+                    "Unassigned",
+                    "Geo Hall",
+                    "Alex Rivera",
+                    "Tech Lab Team B",
+                ].index(current_owner)
+                if current_owner
+                in ["Unassigned", "Geo Hall", "Alex Rivera", "Tech Lab Team B"]
+                else 0,
+                key=f"assign_select_{child['id']}",
+            )
+            if new_assignee != current_owner:
+              if st.button(
+                  "💾 Update Assignment", key=f"save_assign_{child['id']}"
+              ):
+                conn = sqlite3.connect(DB_FILE)
+                cursor = conn.cursor()
+                cursor.execute(
+                    "UPDATE queue SET assigned_to=? WHERE id=?",
+                    (new_assignee, child["id"]),
+                )
+                conn.commit()
+                conn.close()
+                st.success(f"Assigned to {new_assignee}!")
+                st.rerun()
+
+          with c_media:
+            st.markdown("##### 📷 Media & Notes History")
+
+            # Display uploaded photo if exists
+            photo_file = child.get("photo_path", "")
+            if photo_file and os.path.exists(photo_file):
+              st.image(
+                  photo_file,
+                  caption=f"Attached Photo - Unit ID #{child['id']}",
+                  width=220,
+              )
+
+            # Upload Photo Control
+            uploaded_img = st.file_uploader(
+                "Attach Photo / Inspection Image:",
+                type=["png", "jpg", "jpeg"],
+                key=f"photo_{child['id']}",
+            )
+            if uploaded_img:
+              img_filename = f"Unit_{child['id']}_{uploaded_img.name}"
+              save_path = os.path.join(UPLOADS_DIR, img_filename)
+              with open(save_path, "wb") as f:
+                f.write(uploaded_img.getbuffer())
+
+              conn = sqlite3.connect(DB_FILE)
+              cursor = conn.cursor()
+              cursor.execute(
+                  "UPDATE queue SET photo_path=? WHERE id=?",
+                  (save_path, child["id"]),
+              )
+              conn.commit()
+              conn.close()
+              st.success("Photo attached successfully!")
+              st.rerun()
+
+          # Notes history & append note box
+          st.text_area(
+              "Notes / Communication History:",
+              value=str(child.get("notes", "") or ""),
+              height=100,
+              disabled=True,
+              key=f"notes_disp_{child['id']}",
+          )
+
+          with st.form(key=f"add_note_form_{child['id']}"):
+            new_note_entry = st.text_input(
+                "Append New Outcome / Test Note:",
+                placeholder="Type inspection result...",
+            )
+            if st.form_submit_button("💬 Append Note"):
+              if new_note_entry:
+                conn = sqlite3.connect(DB_FILE)
+                cursor = conn.cursor()
+                updated_notes = (
+                    str(child.get("notes", "") or "")
+                    + f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M')} - {st.session_state.get('user', 'Geo Hall')}]: {new_note_entry}"
+                )
+                cursor.execute(
+                    "UPDATE queue SET notes=? WHERE id=?",
+                    (updated_notes, child["id"]),
+                )
+                conn.commit()
+                conn.close()
+                st.success("Note appended!")
+                st.rerun()
+
+          st.divider()
 
 # =========================================================
 # VIEW 2: LOG NEW ITEM (SINGLE)
@@ -650,7 +755,7 @@ elif nav_choice == "Log New Item (Single)":
   st.subheader("📝 Log New Unit into Lab Queue")
   with st.form("new_unit_form"):
     c1, c2 = st.columns(2)
-    f_rga = c1.text_input("RGA Number*")
+    f_rga = c1.text_input("Parent RGA Number*")
     f_notif = c2.text_input("Notification Number")
 
     c3, c4 = st.columns(2)
@@ -658,9 +763,13 @@ elif nav_choice == "Log New Item (Single)":
     f_model = c4.text_input("Model Series / Description*")
 
     c5, c6 = st.columns(2)
-    f_sn = c5.text_input("Serial Number*")
+    f_sn = c5.text_input("Child Serial Number*")
     f_urgency = c6.slider("Priority / Urgency Score", 1, 10, 5)
 
+    f_assign = st.selectbox(
+        "Initial Assignee",
+        ["Unassigned", "Geo Hall", "Alex Rivera", "Tech Lab Team B"],
+    )
     f_status = st.selectbox(
         "Initial Status",
         [
@@ -679,8 +788,8 @@ elif nav_choice == "Log New Item (Single)":
         cursor = conn.cursor()
         cursor.execute(
             """
-                INSERT INTO queue (rga_number, notification_number, customer_name, model_series, serial_number, status, urgency, notes, date_logged)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO queue (rga_number, notification_number, customer_name, model_series, serial_number, status, urgency, assigned_to, notes, date_logged)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 f_rga,
@@ -690,6 +799,7 @@ elif nav_choice == "Log New Item (Single)":
                 f_sn,
                 f_status,
                 f_urgency,
+                f_assign,
                 f_notes,
                 datetime.now().strftime("%Y-%m-%d"),
             ),
@@ -710,7 +820,7 @@ elif nav_choice == "Log New Item (Single)":
 # VIEW 3: LOG MULTIPLE UNITS (BATCH PER RGA)
 # =========================================================
 elif nav_choice == "Log Multiple Units (Batch per RGA)":
-  st.subheader("📦 Batch Log Multiple Serial Numbers")
+  st.subheader("📦 Batch Log Multiple Serial Numbers under Parent RGA")
   c1, c2 = st.columns(2)
   batch_rga = c1.text_input("Parent RGA Number for Batch*:")
   batch_notif = c2.text_input("Notification Number:")
@@ -732,16 +842,16 @@ elif nav_choice == "Log Multiple Units (Batch per RGA)":
       for sn in sn_list:
         cursor.execute(
             """
-                INSERT INTO queue (rga_number, notification_number, customer_name, model_series, serial_number, status, urgency, date_logged)
-                VALUES (?, ?, ?, ?, ?, 'Received in Lab', 5, ?)
+                INSERT INTO queue (rga_number, notification_number, customer_name, model_series, serial_number, status, urgency, assigned_to, date_logged)
+                VALUES (?, ?, ?, ?, ?, 'Received in Lab', 5, 'Unassigned', ?)
             """,
             (batch_rga, batch_notif, batch_cust, batch_model, sn, today_str),
         )
       conn.commit()
       conn.close()
       st.success(
-          f"✅ Successfully batch-logged {len(sn_list)} serial number(s) under"
-          f" RGA `{batch_rga}`!"
+          f"✅ Successfully batch-logged {len(sn_list)} child serial number(s)"
+          f" under Parent RGA `{batch_rga}`!"
       )
     else:
       st.error(
@@ -821,6 +931,17 @@ elif nav_choice == "Update Existing Item":
           "Urgency Score", 1, 10, int(sel_row.get("urgency", 5))
       )
 
+      u_assign = st.selectbox(
+          "Assignee",
+          ["Unassigned", "Geo Hall", "Alex Rivera", "Tech Lab Team B"],
+          index=["Unassigned", "Geo Hall", "Alex Rivera", "Tech Lab Team B"].index(
+              sel_row.get("assigned_to", "Unassigned")
+          )
+          if sel_row.get("assigned_to", "Unassigned")
+          in ["Unassigned", "Geo Hall", "Alex Rivera", "Tech Lab Team B"]
+          else 0,
+      )
+
       u_status = st.text_input("Status", value=str(sel_row.get("status", "")))
       u_notes = st.text_area("Notes", value=str(sel_row.get("notes", "")))
 
@@ -829,7 +950,7 @@ elif nav_choice == "Update Existing Item":
         cursor = conn.cursor()
         cursor.execute(
             """
-                UPDATE queue SET rga_number=?, notification_number=?, customer_name=?, model_series=?, serial_number=?, status=?, urgency=?, notes=?
+                UPDATE queue SET rga_number=?, notification_number=?, customer_name=?, model_series=?, serial_number=?, status=?, urgency=?, assigned_to=?, notes=?
                 WHERE id=?
             """,
             (
@@ -840,6 +961,7 @@ elif nav_choice == "Update Existing Item":
                 u_sn,
                 u_status,
                 u_urgency,
+                u_assign,
                 u_notes,
                 sel_id,
             ),
@@ -869,12 +991,12 @@ Hello {sel_row.get('customer_name', 'Customer')},
 
 The following unit is currently in process at the HYDAC Electronic Lab:
 
-- RGA Number: {sel_row.get('rga_number', 'N/A')}
+- Parent RGA Number: {sel_row.get('rga_number', 'N/A')}
 - Notification Number: {sel_row.get('notification_number', 'N/A')}
 - Model Series: {sel_row.get('model_series', 'N/A')}
 - Serial Number: {sel_row.get('serial_number', 'N/A')}
+- Assigned Technician: {sel_row.get('assigned_to', 'Unassigned')}
 - Current Status: {sel_row.get('status', 'N/A')}
-- Priority Score: {sel_row.get('urgency', 5)}/10
 
 Notes / Test Log:
 {sel_row.get('notes', 'N/A')}
@@ -960,7 +1082,7 @@ elif nav_choice == "Supervisor Urgency Override":
 
     st.write(
         f"**Current Priority:** `{sel_row.get('urgency', 5)}/10` |"
-        f" **Status:** `{sel_row.get('status', 'N/A')}`"
+        f" **Assigned:** `{sel_row.get('assigned_to', 'Unassigned')}`"
     )
 
     new_urgency = st.slider(
@@ -968,6 +1090,10 @@ elif nav_choice == "Supervisor Urgency Override":
         1,
         10,
         int(sel_row.get("urgency", 5)),
+    )
+    new_assignee = st.selectbox(
+        "Reassign Ownership",
+        ["Unassigned", "Geo Hall", "Alex Rivera", "Tech Lab Team B"],
     )
     new_status = st.selectbox(
         "Update Workflow Status",
@@ -981,16 +1107,17 @@ elif nav_choice == "Supervisor Urgency Override":
     )
     override_reason = st.text_input("Manager Override Justification / Reason:")
 
-    if st.button("⚡ Apply Priority Override", type="primary"):
+    if st.button("⚡ Apply Priority & Assignment Override", type="primary"):
       conn = sqlite3.connect(DB_FILE)
       cursor = conn.cursor()
       updated_notes = (
           str(sel_row.get("notes", ""))
-          + f"\n[Supervisor Override ({datetime.now().strftime('%Y-%m-%d %H:%M')}): Priority set to {new_urgency}/10. Reason: {override_reason}]"
+          + f"\n[Supervisor Override ({datetime.now().strftime('%Y-%m-%d %H:%M')}): Priority set to {new_urgency}/10, Assigned to {new_assignee}. Reason: {override_reason}]"
       )
       cursor.execute(
-          "UPDATE queue SET urgency=?, status=?, notes=? WHERE id=?",
-          (new_urgency, new_status, updated_notes, sel_id),
+          "UPDATE queue SET urgency=?, assigned_to=?, status=?, notes=? WHERE"
+          " id=?",
+          (new_urgency, new_assignee, new_status, updated_notes, sel_id),
       )
       conn.commit()
       conn.close()
@@ -1052,8 +1179,6 @@ elif nav_choice == "Create Serial Cert Folder":
 
           try:
             os.makedirs(target_dir, exist_ok=True)
-
-            # Generate template text file inside directory
             template_path = os.path.join(
                 target_dir, f"Cert_Template_{sn_clean}.txt"
             )
@@ -1104,25 +1229,20 @@ elif nav_choice == "Demo & Reset Controls":
     with st.container(border=True):
       st.markdown("#### 🔄 Reset & Seed Demo Data")
       st.caption(
-          "Wipes current queue database and inserts 10 realistic HYDAC lab"
-          " records (CS 1000, FAM-10, Caterpillar, John Deere)."
+          "Wipes current queue database and inserts realistic HYDAC lab"
+          " records grouped under parent RGAs (Caterpillar, John Deere,"
+          " Komatsu)."
       )
       if st.button("🌱 Execute Database Reset & Seed", type="primary"):
         reset_and_seed_db()
         st.cache_data.clear()
-        st.success(
-            "✅ Database reset complete! 10 sample records populated into"
-            " `lab_queue.db`."
-        )
+        st.success("✅ Database reset complete! Sample records populated.")
         st.rerun()
 
   with c_clear:
     with st.container(border=True):
       st.markdown("#### 🧹 Flush App Cache")
-      st.caption(
-          "Flushes Streamlit's internal memory cache without deleting database"
-          " records."
-      )
+      st.caption("Flushes Streamlit's internal memory cache.")
       if st.button("🔄 Clear App Cache"):
         st.cache_data.clear()
         st.success("App cache cleared successfully.")
@@ -1135,16 +1255,17 @@ elif nav_choice == "Monthly Volume Analytics":
   if df_queue.empty:
     st.warning("No data available for analytics.")
   else:
-    c1, c2 = st.columns(2)
-    c1.metric("Total Processed Records", len(df_queue))
-    c2.metric("Critical Urgency Units", (df_queue["urgency"] >= 8).sum())
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Total Line Items", len(df_queue))
+    c2.metric("Unassigned Items", (df_queue["assigned_to"] == "Unassigned").sum())
+    c3.metric("Critical Priority Units", (df_queue["urgency"] >= 8).sum())
 
     st.markdown("---")
     st.markdown("#### Units Breakdown by Workflow Status")
     st.bar_chart(df_queue["status"].value_counts())
 
-    st.markdown("#### Priority Distribution (Urgency Scores 1 to 10)")
-    st.bar_chart(df_queue["urgency"].value_counts())
+    st.markdown("#### Assignment Distribution")
+    st.bar_chart(df_queue["assigned_to"].value_counts())
 
 # =========================================================
 # VIEW 14: BACKUP & DATA EXPORT
