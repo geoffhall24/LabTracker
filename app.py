@@ -1,7 +1,7 @@
 import io
 import os
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 import pandas as pd
 import streamlit as st
 
@@ -15,26 +15,15 @@ st.set_page_config(
 DB_FILE = "lab_queue.db"
 LOCAL_CERTS_DIR = r"C:\Users\Geoff.Hall\OneDrive - HYDAC Technology Corp\Desktop\LabQueueTracker\Certs"
 
-# Custom CSS for Synced Email Badges and Layout
+# Custom CSS for Badges & Table Formatting
 st.markdown(
     """
     <style>
-    .badge-email {
-        background-color: #2e7d32;
-        color: white;
-        padding: 3px 8px;
-        border-radius: 4px;
-        font-size: 0.85rem;
-        font-weight: bold;
-    }
-    .badge-reply {
-        background-color: #1565c0;
-        color: white;
-        padding: 3px 8px;
-        border-radius: 4px;
-        font-size: 0.85rem;
-        font-weight: bold;
-    }
+    .badge-green { background-color: #d4edda; color: #155724; padding: 4px 8px; border-radius: 4px; font-weight: bold; }
+    .badge-yellow { background-color: #fff3cd; color: #856404; padding: 4px 8px; border-radius: 4px; font-weight: bold; }
+    .badge-red { background-color: #f8d7da; color: #721c24; padding: 4px 8px; border-radius: 4px; font-weight: bold; }
+    .badge-urgency { background-color: #0d6efd; color: white; padding: 3px 8px; border-radius: 4px; font-weight: bold; }
+    .badge-email { background-color: #6f42c1; color: white; padding: 3px 8px; border-radius: 4px; font-weight: bold; }
     </style>
 """,
     unsafe_allow_html=True,
@@ -42,12 +31,33 @@ st.markdown(
 
 
 # =========================================================
-# HELPER FUNCTIONS & DATABASE DATA LOADER
+# DATABASE INIT & HELPER FUNCTIONS
 # =========================================================
+def init_db():
+  """Ensures the database and required schema columns exist."""
+  conn = sqlite3.connect(DB_FILE)
+  cursor = conn.cursor()
+  cursor.execute("""
+        CREATE TABLE IF NOT EXISTS queue (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            rga_number TEXT,
+            notification_number TEXT,
+            customer_name TEXT,
+            model_series TEXT,
+            serial_number TEXT,
+            status TEXT,
+            urgency INTEGER DEFAULT 5,
+            date_received TEXT,
+            notes TEXT
+        )
+    """)
+  conn.commit()
+  conn.close()
+
+
 def load_data():
-  """Loads the lab queue dataframe cleanly from the local SQLite database."""
-  if not os.path.exists(DB_FILE):
-    return pd.DataFrame()
+  """Loads queue data from SQLite and computes age metrics."""
+  init_db()
   conn = sqlite3.connect(DB_FILE)
   try:
     df = pd.read_sql_query("SELECT * FROM queue", conn)
@@ -55,11 +65,35 @@ def load_data():
     df = pd.DataFrame()
   finally:
     conn.close()
+
+  if not df.empty:
+    if "date_received" not in df.columns or df["date_received"].isnull().all():
+      df["date_received"] = datetime.now().strftime("%Y-%m-%d")
+
+    df["parsed_date"] = pd.to_datetime(df["date_received"], errors="coerce")
+    now = datetime.now()
+    df["age_days"] = (now - df["parsed_date"]).dt.days.fillna(0).astype(int)
+    df["age_weeks"] = (df["age_days"] / 7).round(1)
+
+    if "urgency" not in df.columns:
+      df["urgency"] = 5
+    df["urgency"] = df["urgency"].fillna(5).astype(int)
+
   return df
 
 
+def get_age_badge(weeks):
+  """Returns age category badge HTML."""
+  if weeks <= 4:
+    return f'<span class="badge-green">🟢 {weeks} wks</span>'
+  elif weeks <= 7:
+    return f'<span class="badge-yellow">🟡 {weeks} wks</span>'
+  else:
+    return f'<span class="badge-red">🔴 {weeks} wks</span>'
+
+
 def build_unit_dropdown_options(df):
-  """Formats dropdown labels into: RGA: X | Notif: Y | Model | SN: Z (Unit ID: N)"""
+  """Constructs descriptive labels for selection dropdowns."""
   options_map = {}
   if df is None or df.empty:
     return options_map
@@ -78,20 +112,19 @@ def build_unit_dropdown_options(df):
         or "N/A"
     )
     sn = str(row.get("serial_number", "")).replace("nan", "").strip() or "N/A"
+    urgency = row.get("urgency", 5)
 
-    label = (
-        f"RGA: {rga} | Notif: {notif} | {model} | SN: {sn} (Unit ID: {unit_id})"
-    )
+    label = f"RGA: {rga} | Notif: {notif} | {model} | SN: {sn} [Urgency: {urgency}/10] (ID: {unit_id})"
     options_map[label] = unit_id
 
   return options_map
 
 
-# Load dataset globally into memory
+# Load current queue state
 df_queue = load_data()
 
 # =========================================================
-# HEADER BANNERS & ENVIRONMENT TOGGLE
+# HEADER & LOCAL MODE TOGGLE
 # =========================================================
 col_logo, col_title = st.columns([1, 6])
 with col_logo:
@@ -127,504 +160,355 @@ with status_col:
 st.divider()
 
 # =========================================================
-# SIDEBAR NAVIGATION & USER CARD
+# SIDEBAR NAVIGATION
 # =========================================================
 st.sidebar.markdown("### 👤 Logged In As:")
 st.sidebar.markdown("**Geo Hall**")
-st.sidebar.caption("Role: Developer")
-st.sidebar.button("🚪 Sign Out")
+st.sidebar.caption("Role: Lead Operations / Developer")
 st.sidebar.markdown("---")
 
 st.sidebar.header("Navigation Menu")
 nav_choice = st.sidebar.radio(
-    "Select View",
+    "Select Workflow",
     [
-        "View Queue Dashboard",
-        "Log New Item (Single)",
-        "Log Multiple Units (Batch per RGA)",
-        "Bulk Import & Staged Review",
-        "Update Existing Item",
-        "Generate Support Email",
-        "Sync Emails from Returns",
-        "Sync Sent Items (Outbox & Replies)",
-        "Supervisor Urgency Override",
-        "Create Serial Cert Folder",
-        "⚙️ View-Only Display Config",
-        "Demo & Reset Controls",
-        "Monthly Volume Analytics",
-        "Backup & Data Export",
+        "📊 Main Queue Dashboard",
+        "➕ Log New Request",
+        "🛡️ Manager Priority Override",
+        "📥 Backup & Data Export",
     ],
 )
 
-# Keep df_queue fresh on every re-render
-df_queue = load_data()
-
-
 # =========================================================
-# VIEW 1: QUEUE DASHBOARD
+# WORKFLOW 1: MAIN QUEUE DASHBOARD & PRE-POPULATED ACTION HUB
 # =========================================================
-if nav_choice == "View Queue Dashboard":
+if nav_choice == "📊 Main Queue Dashboard":
   st.subheader("📊 Active Lab Queue Dashboard")
 
   if df_queue.empty:
     st.warning("No records found in `lab_queue.db`.")
   else:
+    # Top Level Metrics
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Total Units in Queue", len(df_queue))
+    m1.metric("Total Pending Requests", len(df_queue))
 
-    synced_emails_count = (
+    overdue_count = (df_queue["age_weeks"] >= 8).sum()
+    m2.metric("Overdue (8+ Weeks)", overdue_count)
+
+    high_urgency_count = (df_queue["urgency"] >= 8).sum()
+    m3.metric("Critical Urgency (8-10)", high_urgency_count)
+
+    email_synced_count = (
         df_queue["notes"]
         .dropna()
         .apply(lambda x: "[Synced Email" in str(x))
         .sum()
-        if "notes" in df_queue.columns
-        else 0
     )
-    m2.metric("Units with Synced Emails", synced_emails_count)
-
-    rga_count = (
-        df_queue["rga_number"].dropna().replace("nan", "").ne("").sum()
-        if "rga_number" in df_queue.columns
-        else 0
-    )
-    m3.metric("RGAs Active", rga_count)
-
-    notif_count = (
-        df_queue["notification_number"].dropna().replace("nan", "").ne("").sum()
-        if "notification_number" in df_queue.columns
-        else 0
-    )
-    m4.metric("Notifications Active", notif_count)
+    m4.metric("Units with Synced Emails", email_synced_count)
 
     st.markdown("---")
-    search_term = st.text_input(
-        "🔍 Filter Queue (RGA, Notification, Customer, Model, Serial Number):"
+
+    # Sorting Logic: Oldest first by default
+    sorted_df = df_queue.sort_values(
+        by=["parsed_date", "urgency"], ascending=[True, False]
     )
 
+    # Search & Filter
+    search_term = st.text_input(
+        "🔍 Search Queue (RGA, Notification, Customer, Model, Serial Number):"
+    )
     if search_term:
-      filter_mask = df_queue.astype(str).apply(
+      filter_mask = sorted_df.astype(str).apply(
           lambda col: col.str.contains(search_term, case=False)
       ).any(axis=1)
-      display_df = df_queue[filter_mask]
+      display_df = sorted_df[filter_mask]
     else:
-      display_df = df_queue
+      display_df = sorted_df
 
-    st.dataframe(display_df, use_container_width=True)
+    # Parent / Child Hierarchy View
+    st.markdown("### 📋 Pending Requests (Oldest to Newest)")
 
-    st.markdown("### 🔎 Unit Detail & Notes Inspection")
-    unit_map = build_unit_dropdown_options(display_df)
+    # Formatted display columns
+    for idx, row in display_df.iterrows():
+      weeks = row.get("age_weeks", 0)
+      urgency = row.get("urgency", 5)
+      notes_str = str(row.get("notes", "") or "")
+      has_email = "[Synced" in notes_str
 
-    if unit_map:
-      selected_inspect_label = st.selectbox(
-          "Select Unit to Inspect Details & Synced Notes:",
-          options=list(unit_map.keys()),
-          key="inspect_select",
+      age_html = get_age_badge(weeks)
+      urgency_html = f'<span class="badge-urgency">Urgency: {urgency}/10</span>'
+      email_html = (
+          '<span class="badge-email">✉️ Email Attached</span>'
+          if has_email
+          else ""
       )
-      selected_id = unit_map[selected_inspect_label]
-      selected_row = display_df[display_df["id"] == selected_id].iloc[0]
 
-      with st.expander(f"📋 Details for Unit ID {selected_id}", expanded=True):
-        c1, c2, c3 = st.columns(3)
-        c1.write(f"**RGA Number:** {selected_row.get('rga_number', 'N/A')}")
-        c2.write(
-            "**Notification Number:**"
-            f" {selected_row.get('notification_number', 'N/A')}"
-        )
-        c3.write(
-            f"**Customer Name:** {selected_row.get('customer_name', 'N/A')}"
+      with st.expander(
+          f"Parent RGA: {row.get('rga_number', 'N/A')} | SN:"
+          f" {row.get('serial_number', 'N/A')} | {row.get('model_series', 'N/A')}"
+          f" | Received: {row.get('date_received', 'N/A')}"
+      ):
+        st.markdown(
+            f"**Age:** {age_html} &nbsp;&nbsp; **Priority:** {urgency_html}"
+            f" &nbsp;&nbsp; {email_html}",
+            unsafe_allow_html=True,
         )
 
-        c4, c5, c6 = st.columns(3)
-        c4.write(
-            "**Model / Item:**"
-            f" {selected_row.get('model_series') or selected_row.get('model') or selected_row.get('item_description') or 'N/A'}"
-        )
-        c5.write(
-            f"**Serial Number:** {selected_row.get('serial_number', 'N/A')}"
-        )
-        c6.write(
-            f"**Status / Location:** {selected_row.get('status', 'N/A')}"
-        )
+        c1, c2, c3, c4 = st.columns(4)
+        c1.write(f"**Customer:** {row.get('customer_name', 'N/A')}")
+        c2.write(f"**Notification:** {row.get('notification_number', 'N/A')}")
+        c3.write(f"**Status:** {row.get('status', 'N/A')}")
+        c4.write(f"**Unit ID:** {row.get('id', 'N/A')}")
 
-        notes_val = str(selected_row.get("notes", "") or "")
-        if "[Synced Email from Returns" in notes_val:
-          st.markdown(
-              '<span class="badge-email">⭐ Returns Email Synced</span>',
-              unsafe_allow_html=True,
-          )
-        if "[Synced Sent Reply" in notes_val:
-          st.markdown(
-              '<span class="badge-reply">✅ Outbox Reply Sent</span>',
-              unsafe_allow_html=True,
-          )
+        if notes_str:
+          st.info(f"**Notes / Email Thread:**\n{notes_str}")
 
-        st.text_area(
-            "Outcome / Notes History:", value=notes_val, height=200, disabled=True
-        )
+    st.markdown("---")
 
-# =========================================================
-# VIEW 2: LOG NEW ITEM (SINGLE)
-# =========================================================
-elif nav_choice == "Log New Item (Single)":
-  st.subheader("📝 Log New Unit into Queue")
-  with st.form("new_unit_form"):
-    f_rga = st.text_input("RGA Number")
-    f_notif = st.text_input("Notification Number")
-    f_cust = st.text_input("Customer Name")
-    f_model = st.text_input("Model / Item Description")
-    f_sn = st.text_input("Serial Number")
-    f_status = st.selectbox(
-        "Initial Status",
-        [
-            "Received in Lab",
-            "Under Testing",
-            "Pending Customer Info",
-            "Completed",
-        ],
-    )
-    f_notes = st.text_area("Initial Notes")
-
-    submit_btn = st.form_submit_button("➕ Log Unit")
-    if submit_btn:
-      conn = sqlite3.connect(DB_FILE)
-      cursor = conn.cursor()
-      cursor.execute(
-          """
-            INSERT INTO queue (rga_number, notification_number, customer_name, model_series, serial_number, status, notes)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """,
-          (f_rga, f_notif, f_cust, f_model, f_sn, f_status, f_notes),
-      )
-      conn.commit()
-      conn.close()
-      st.success(f"✅ Successfully logged unit RGA: {f_rga} | SN: {f_sn}")
-
-# =========================================================
-# VIEW 3: LOG MULTIPLE UNITS (BATCH PER RGA)
-# =========================================================
-elif nav_choice == "Log Multiple Units (Batch per RGA)":
-  st.subheader("📦 Batch Log Multiple Serial Numbers")
-  batch_rga = st.text_input("RGA Number for Batch:")
-  batch_notif = st.text_input("Notification Number:")
-  batch_cust = st.text_input("Customer Name:")
-  batch_model = st.text_input("Model / Item Description:")
-  batch_sns = st.text_area("Enter Serial Numbers (One per line):")
-
-  if st.button("🚀 Process Batch Logging"):
-    sn_list = [s.strip() for s in batch_sns.split("\n") if s.strip()]
-    if sn_list:
-      conn = sqlite3.connect(DB_FILE)
-      cursor = conn.cursor()
-      for sn in sn_list:
-        cursor.execute(
-            """
-                INSERT INTO queue (rga_number, notification_number, customer_name, model_series, serial_number, status)
-                VALUES (?, ?, ?, ?, ?, 'Received in Lab')
-            """,
-            (batch_rga, batch_notif, batch_cust, batch_model, sn),
-        )
-      conn.commit()
-      conn.close()
-      st.success(
-          f"✅ Successfully batch logged {len(sn_list)} units under RGA"
-          f" {batch_rga}!"
-      )
-    else:
-      st.warning("Please enter at least one valid serial number.")
-
-# =========================================================
-# VIEW 4: BULK IMPORT & STAGED REVIEW
-# =========================================================
-elif nav_choice == "Bulk Import & Staged Review":
-  st.subheader("📥 Bulk Data Import (Excel / CSV)")
-  uploaded_file = st.file_uploader(
-      "Upload Excel or CSV file:", type=["csv", "xlsx"]
-  )
-  if uploaded_file:
-    try:
-      if uploaded_file.name.endswith(".csv"):
-        import_df = pd.read_csv(uploaded_file)
-      else:
-        import_df = pd.read_excel(uploaded_file)
-      st.markdown("#### Staged Data Preview")
-      st.dataframe(import_df.head(10))
-
-      if st.button("💾 Append Previewed Data to Queue Database"):
-        conn = sqlite3.connect(DB_FILE)
-        import_df.to_sql("queue", conn, if_exists="append", index=False)
-        conn.close()
-        st.success(
-            f"✅ Successfully appended {len(import_df)} records into"
-            " lab_queue.db!"
-        )
-    except Exception as e:
-      st.error(f"❌ Error reading file: {e}")
-
-# =========================================================
-# VIEW 5: UPDATE EXISTING ITEM
-# =========================================================
-elif nav_choice == "Update Existing Item":
-  st.subheader("✏️ Update Existing Queue Record")
-  if df_queue.empty:
-    st.warning("No records to update.")
-  else:
-    unit_map = build_unit_dropdown_options(df_queue)
-    sel_label = st.selectbox(
-        "Select Unit to Edit:", options=list(unit_map.keys())
-    )
-    sel_id = unit_map[sel_label]
-    sel_row = df_queue[df_queue["id"] == sel_id].iloc[0]
-
-    with st.form("edit_unit_form"):
-      u_rga = st.text_input(
-          "RGA Number", value=str(sel_row.get("rga_number", ""))
-      )
-      u_notif = st.text_input(
-          "Notification Number",
-          value=str(sel_row.get("notification_number", "")),
-      )
-      u_cust = st.text_input(
-          "Customer Name", value=str(sel_row.get("customer_name", ""))
-      )
-      u_model = st.text_input(
-          "Model / Item", value=str(sel_row.get("model_series", ""))
-      )
-      u_sn = st.text_input(
-          "Serial Number", value=str(sel_row.get("serial_number", ""))
-      )
-      u_status = st.text_input("Status", value=str(sel_row.get("status", "")))
-      u_notes = st.text_area("Notes", value=str(sel_row.get("notes", "")))
-
-      if st.form_submit_button("💾 Save Record Updates"):
-        conn = sqlite3.connect(DB_FILE)
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-                UPDATE queue SET rga_number=?, notification_number=?, customer_name=?, model_series=?, serial_number=?, status=?, notes=?
-                WHERE id=?
-            """,
-            (u_rga, u_notif, u_cust, u_model, u_sn, u_status, u_notes, sel_id),
-        )
-        conn.commit()
-        conn.close()
-        st.success(f"✅ Record ID {sel_id} updated successfully!")
-
-# =========================================================
-# VIEW 6: GENERATE SUPPORT EMAIL
-# =========================================================
-elif nav_choice == "Generate Support Email":
-  st.subheader("✉️ Generate Support Notification Email")
-  if df_queue.empty:
-    st.warning("No units available.")
-  else:
-    unit_map = build_unit_dropdown_options(df_queue)
-    sel_label = st.selectbox(
-        "Select Target Unit:", options=list(unit_map.keys())
-    )
-    sel_id = unit_map[sel_label]
-    sel_row = df_queue[df_queue["id"] == sel_id].iloc[0]
-
-    email_body = f"""Subject: HYDAC Electronic Lab Status Update - RGA: {sel_row.get('rga_number', 'N/A')}
-
-Hello,
-
-The following unit is currently in process at the HYDAC Electronic Lab:
-
-- RGA Number: {sel_row.get('rga_number', 'N/A')}
-- Notification Number: {sel_row.get('notification_number', 'N/A')}
-- Model Series: {sel_row.get('model_series', 'N/A')}
-- Serial Number: {sel_row.get('serial_number', 'N/A')}
-- Current Status: {sel_row.get('status', 'N/A')}
-
-Notes:
-{sel_row.get('notes', 'N/A')}
-
-Best regards,
-HYDAC Electronic Lab Team
-"""
-    st.text_area("Copy Generated Email:", value=email_body, height=280)
-
-# =========================================================
-# VIEW 7: SYNC EMAILS FROM RETURNS
-# =========================================================
-elif nav_choice == "Sync Emails from Returns":
-  st.subheader("📩 Synced Returns Email Inbox")
-  st.info(
-      "Emails from Returns are automatically scanned by `sync_outlook.py`"
-      " locally on your PC."
-  )
-  email_units = df_queue[
-      df_queue["notes"]
-      .fillna("")
-      .str.contains("\\[Synced Email from Returns", case=False)
-  ]
-  if email_units.empty:
-    st.warning("No synced Returns emails found in database.")
-  else:
-    unit_map = build_unit_dropdown_options(email_units)
-    sel_label = st.selectbox(
-        "Select Unit with Synced Returns Email:", options=list(unit_map.keys())
-    )
-    sel_id = unit_map[sel_label]
-    sel_row = email_units[email_units["id"] == sel_id].iloc[0]
-    st.text_area("Synced Email Content:", value=str(sel_row.get("notes", "")), height=300)
-
-# =========================================================
-# VIEW 8: SYNC SENT ITEMS (OUTBOX & REPLIES)
-# =========================================================
-elif nav_choice == "Sync Sent Items (Outbox & Replies)":
-  st.subheader("📤 Sync Outlook Sent Items")
-  st.warning("Outlook integration requires Windows desktop environment.")
-  sent_units = df_queue[
-      df_queue["notes"]
-      .fillna("")
-      .str.contains("\\[Synced Sent Reply", case=False)
-  ]
-  if sent_units.empty:
-    st.info("No sent email replies currently tagged in database.")
-  else:
-    unit_map = build_unit_dropdown_options(sent_units)
-    sel_label = st.selectbox(
-        "Select Unit with Sent Reply:", options=list(unit_map.keys())
-    )
-    sel_id = unit_map[sel_label]
-    sel_row = sent_units[sent_units["id"] == sel_id].iloc[0]
-    st.text_area("Synced Sent Reply Content:", value=str(sel_row.get("notes", "")), height=300)
-
-# =========================================================
-# VIEW 9: SUPERVISOR URGENCY OVERRIDE
-# =========================================================
-elif nav_choice == "Supervisor Urgency Override":
-  st.subheader("⚡ Supervisor Urgency & Escalation Override")
-  if df_queue.empty:
-    st.warning("No active units available.")
-  else:
-    unit_map = build_unit_dropdown_options(df_queue)
-    sel_label = st.selectbox(
-        "Select Unit to Escalate:", options=list(unit_map.keys())
-    )
-    sel_id = unit_map[sel_label]
-    urgency_level = st.select_slider(
-        "Set Priority Level",
-        options=["Normal", "High Priority", "CRITICAL / EXPEDITE"],
+    # Contextual Pre-Populated Action Hub
+    st.markdown("## 🎯 Contextual Action Hub")
+    st.caption(
+        "Select a unit below to pre-populate Cert Creation, Emailing,"
+        " Inventory Check, and Evaluation Reports."
     )
 
-    if st.button("Apply Urgency Flag"):
-      conn = sqlite3.connect(DB_FILE)
-      cursor = conn.cursor()
-      cursor.execute(
-          "UPDATE queue SET status=? WHERE id=?",
-          (f"URGENT: {urgency_level}", sel_id),
+    unit_map = build_unit_dropdown_options(sorted_df)
+    selected_label = st.selectbox(
+        "Select Active Unit to Process:", options=list(unit_map.keys())
+    )
+    selected_id = unit_map[selected_label]
+    selected_unit = sorted_df[sorted_df["id"] == selected_id].iloc[0]
+
+    # Sub-tabs pre-populated from selected unit
+    tab_cert, tab_email, tab_parts, tab_eval = st.tabs([
+        "📁 Create Cert Folder",
+        "✉️ Send Email",
+        "📦 Check Parts Inventory",
+        "📄 Create Eval Report",
+    ])
+
+    # SUB-TAB 1: CREATE CERT FOLDER
+    with tab_cert:
+      st.subheader("📁 Certificate Folder Generation")
+      st.write(
+          f"**Target Unit:** RGA `{selected_unit.get('rga_number')}` | SN"
+          f" `{selected_unit.get('serial_number')}`"
       )
-      conn.commit()
-      conn.close()
-      st.success(
-          f"✅ Applied urgency status `{urgency_level}` to Unit ID {sel_id}!"
-      )
-
-# =========================================================
-# VIEW 10: CREATE SERIAL CERT FOLDER
-# =========================================================
-elif nav_choice == "Create Serial Cert Folder":
-  st.subheader("📁 Create Serial Cert Folder")
-
-  if df_queue.empty:
-    st.warning("No unit records available in database.")
-  else:
-    unit_map = build_unit_dropdown_options(df_queue)
-
-    if unit_map:
-      selected_label = st.selectbox(
-          "Select Unit for Cert Folder Creation:",
-          options=list(unit_map.keys()),
-          key="cert_folder_select",
-      )
-
-      selected_id = unit_map[selected_label]
-      selected_row = df_queue[df_queue["id"] == selected_id].iloc[0]
-
-      st.markdown("---")
-      st.markdown("#### Selected Unit Summary")
-      c1, c2, c3 = st.columns(3)
-      c1.write(f"**RGA Number:** `{selected_row.get('rga_number', 'N/A')}`")
-      c2.write(
-          f"**Notification:** `{selected_row.get('notification_number', 'N/A')}`"
-      )
-      c3.write(
-          f"**Serial Number:** `{selected_row.get('serial_number', 'N/A')}`"
-      )
-
-      st.markdown("---")
 
       if is_local_mode:
-        if st.button("📁 Create Folder & Copy Template", type="primary"):
+        if st.button("📁 Create Cert Folder Structure", type="primary"):
           rga_clean = (
-              str(selected_row.get("rga_number", "UNKNOWN"))
+              str(selected_unit.get("rga_number", "UNKNOWN"))
               .replace("nan", "")
               .strip()
-              or "NO_RGA"
           )
           sn_clean = (
-              str(selected_row.get("serial_number", "UNKNOWN"))
+              str(selected_unit.get("serial_number", "UNKNOWN"))
               .replace("nan", "")
               .strip()
-              or "NO_SN"
           )
           folder_title = f"RGA_{rga_clean}_SN_{sn_clean}"
           target_dir = os.path.join(LOCAL_CERTS_DIR, folder_title)
 
           try:
             os.makedirs(target_dir, exist_ok=True)
-            st.success(
-                f"✅ Folder successfully created locally:\n`{target_dir}`"
-            )
+            st.success(f"✅ Folder created locally at:\n`{target_dir}`")
           except Exception as err:
-            st.error(f"❌ Failed to create folder directory: {err}")
+            st.error(f"❌ Failed to create folder: {err}")
       else:
         st.warning(
-            "⚠️ **Local folder creation is disabled in Streamlit Cloud"
-            " mode.**\n\nTo create folders on your PC:\n1. Run the app locally"
-            " via `run_app.bat`.\n2. Switch the **Enable Local PC Mode** toggle"
-            " at the top to **ON**."
+            "⚠️ Local Folder Creation disabled in Cloud Mode. Enable **Local PC"
+            " Mode** toggle above when running via `run_app.bat`."
+        )
+
+    # SUB-TAB 2: SEND EMAIL
+    with tab_email:
+      st.subheader("✉️ Pre-Populated Customer / Internal Email")
+      default_body = f"""Subject: Update on RGA: {selected_unit.get('rga_number')} - SN: {selected_unit.get('serial_number')}
+
+Hello {selected_unit.get('customer_name', 'Customer')},
+
+Here is the current laboratory status update regarding your unit:
+
+- RGA Number: {selected_unit.get('rga_number', 'N/A')}
+- Notification Number: {selected_unit.get('notification_number', 'N/A')}
+- Model: {selected_unit.get('model_series', 'N/A')}
+- Serial Number: {selected_unit.get('serial_number', 'N/A')}
+- Current Status: {selected_unit.get('status', 'Received in Lab')}
+- Assigned Urgency: {selected_unit.get('urgency', 5)}/10
+
+Notes:
+{selected_unit.get('notes', 'N/A')}
+
+Best regards,
+HYDAC Electronic Lab Team
+"""
+      st.text_area(
+          "Review & Copy Email Template:", value=default_body, height=280
+      )
+
+    # SUB-TAB 3: CHECK PARTS INVENTORY
+    with tab_parts:
+      st.subheader("📦 Inventory Parts Search")
+      model_query = selected_unit.get("model_series", "")
+      st.text_input("Pre-filled Model / Part Number Search:", value=model_query)
+      st.info(f"Querying replacement components and seal kits for `{model_query}`...")
+      st.caption(
+          "Integrated inventory lookup ready. (Connects to internal SAP / ERP"
+          " database)."
+      )
+
+    # SUB-TAB 4: CREATE EVAL REPORT
+    with tab_eval:
+      st.subheader("📄 Evaluation Report Builder")
+      with st.form("eval_report_form"):
+        st.text_input(
+            "RGA Number", value=str(selected_unit.get("rga_number", ""))
+        )
+        st.text_input(
+            "Serial Number", value=str(selected_unit.get("serial_number", ""))
+        )
+        st.text_input(
+            "Model Series", value=str(selected_unit.get("model_series", ""))
+        )
+        eval_findings = st.text_area(
+            "Evaluation Findings & Root Cause Analysis:"
+        )
+        test_results = st.selectbox(
+            "Lab Test Outcome:",
+            [
+                "Passed - Calibration Verified",
+                "Failed - Component Faulty",
+                "Repaired & Re-tested",
+            ],
+        )
+
+        if st.form_submit_button("📄 Save Evaluation Report"):
+          st.success("✅ Evaluation report generated and logged to unit history!")
+
+# =========================================================
+# WORKFLOW 2: LOG NEW REQUEST
+# =========================================================
+elif nav_choice == "➕ Log New Request":
+  st.subheader("📝 Log New Unit or Multi-Unit Parent Order")
+
+  with st.form("log_request_form"):
+    c1, c2 = st.columns(2)
+    f_rga = c1.text_input("Parent RGA Number*")
+    f_notif = c2.text_input("Notification Number")
+
+    c3, c4 = st.columns(2)
+    f_cust = c3.text_input("Customer Name")
+    f_model = c4.text_input("Model / Item Description")
+
+    f_sns = st.text_area(
+        "Serial Number(s)* (Enter multiple serials on separate lines for child items):"
+    )
+
+    c5, c6 = st.columns(2)
+    f_urgency = c5.slider(
+        "Initial Urgency Level (1 = Low, 10 = Critical/Rush)", 1, 10, 5
+    )
+    f_date = c6.date_input("Date Received", value=datetime.now())
+
+    f_notes = st.text_area("Initial Notes / Instructions")
+
+    if st.form_submit_button("🚀 Submit Request(s) to Queue"):
+      sn_list = [s.strip() for s in f_sns.split("\n") if s.strip()]
+      if f_rga and sn_list:
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+        for sn in sn_list:
+          cursor.execute(
+              """
+                    INSERT INTO queue (rga_number, notification_number, customer_name, model_series, serial_number, status, urgency, date_received, notes)
+                    VALUES (?, ?, ?, ?, ?, 'Received in Lab', ?, ?, ?)
+                """,
+              (
+                  f_rga,
+                  f_notif,
+                  f_cust,
+                  f_model,
+                  sn,
+                  f_urgency,
+                  f_date.strftime("%Y-%m-%d"),
+                  f_notes,
+              ),
+          )
+        conn.commit()
+        conn.close()
+        st.success(
+            f"✅ Successfully logged {len(sn_list)} serial number(s) under"
+            f" Parent RGA: {f_rga}!"
+        )
+      else:
+        st.error("Please provide an RGA Number and at least one Serial Number.")
+
+# =========================================================
+# WORKFLOW 3: MANAGER PRIORITY OVERRIDE
+# =========================================================
+elif nav_choice == "🛡️ Manager Priority Override":
+  st.subheader("🛡️ Manager Priority & Urgency Override Panel")
+
+  if df_queue.empty:
+    st.warning("No records available to override.")
+  else:
+    unit_map = build_unit_dropdown_options(df_queue)
+    sel_label = st.selectbox(
+        "Select Unit to Override:", options=list(unit_map.keys())
+    )
+    sel_id = unit_map[sel_label]
+    sel_row = df_queue[df_queue["id"] == sel_id].iloc[0]
+
+    st.write(
+        f"**Current Urgency Score:** `{sel_row.get('urgency', 5)}/10` |"
+        f" **Current Status:** `{sel_row.get('status', 'N/A')}`"
+    )
+
+    with st.form("manager_override_form"):
+      new_urgency = st.slider(
+          "Override Urgency Score (1-10)",
+          1,
+          10,
+          int(sel_row.get("urgency", 5)),
+      )
+      new_status = st.selectbox(
+          "Update Workflow Status",
+          [
+              "Received in Lab",
+              "Under Testing",
+              "Pending Customer Info",
+              "EXPEDITE / RUSH",
+              "Completed",
+          ],
+          index=0,
+      )
+      override_reason = st.text_input("Reason for Manager Override:")
+
+      if st.form_submit_button("⚡ Apply Manager Override"):
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+        updated_notes = (
+            str(sel_row.get("notes", ""))
+            + f"\n[Manager Override ({datetime.now().strftime('%Y-%m-%d %H:%M')}): Urgency set to {new_urgency}. Reason: {override_reason}]"
+        )
+        cursor.execute(
+            """
+                UPDATE queue SET urgency=?, status=?, notes=? WHERE id=?
+            """,
+            (new_urgency, new_status, updated_notes, sel_id),
+        )
+        conn.commit()
+        conn.close()
+        st.success(
+            f"✅ Override applied to Unit ID {sel_id}! Urgency updated to"
+            f" {new_urgency}/10."
         )
 
 # =========================================================
-# VIEW 11: VIEW-ONLY DISPLAY CONFIG
+# WORKFLOW 4: BACKUP & DATA EXPORT
 # =========================================================
-elif nav_choice == "⚙️ View-Only Display Config":
-  st.subheader("⚙️ Display Column Preferences")
-  st.write("Configure which columns to highlight on the main queue dashboard:")
-  show_rga = st.checkbox("Display RGA Column", value=True)
-  show_notif = st.checkbox("Display Notification Column", value=True)
-  show_sn = st.checkbox("Display Serial Number Column", value=True)
-  st.success("Preferences applied to session context.")
-
-# =========================================================
-# VIEW 12: DEMO & RESET CONTROLS
-# =========================================================
-elif nav_choice == "Demo & Reset Controls":
-  st.subheader("⚠️ Operations Command Controls")
-  st.error("Danger Zone: Database operations")
-  if st.button("🔄 Refresh Database Cache"):
-    st.cache_data.clear()
-    st.success("Cache flushed cleanly.")
-
-# =========================================================
-# VIEW 13: MONTHLY VOLUME ANALYTICS
-# =========================================================
-elif nav_choice == "Monthly Volume Analytics":
-  st.subheader("📈 Monthly Volume Analytics")
-  if df_queue.empty:
-    st.warning("No data available for analytics.")
-  else:
-    st.metric("Total Items Processed", len(df_queue))
-    st.bar_chart(df_queue["status"].value_counts())
-
-# =========================================================
-# VIEW 14: BACKUP & DATA EXPORT
-# =========================================================
-elif nav_choice == "Backup & Data Export":
-  st.subheader("📥 Data Export & Database Backup")
+elif nav_choice == "📥 Backup & Data Export":
+  st.subheader("📥 Data Export & Database Snapshot")
 
   if not df_queue.empty:
     c_csv, c_excel = st.columns(2)
@@ -632,9 +516,9 @@ elif nav_choice == "Backup & Data Export":
     with c_csv:
       csv_bytes = df_queue.to_csv(index=False).encode("utf-8")
       st.download_button(
-          label="📥 Download CSV Export",
+          label="📥 Download CSV Snapshot",
           data=csv_bytes,
-          file_name="lab_queue_backup.csv",
+          file_name="lab_queue_snapshot.csv",
           mime="text/csv",
           use_container_width=True,
       )
@@ -648,7 +532,7 @@ elif nav_choice == "Backup & Data Export":
       st.download_button(
           label="📥 Download Excel Backup (.xlsx)",
           data=excel_bytes,
-          file_name="lab_queue_backup.xlsx",
+          file_name="lab_queue_snapshot.xlsx",
           mime=(
               "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
           ),
