@@ -1,15 +1,16 @@
 import io
 import os
+import random
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 import pandas as pd
 import streamlit as st
 
 # =========================================================
-# PAGE CONFIGURATION & HYDAC CORPORATE THEME
+# PAGE CONFIGURATION & FUTURISTIC HYDAC THEME
 # =========================================================
 st.set_page_config(
-    page_title="HYDAC Lab Queue Tracker",
+    page_title="HYDAC Lab Operations Command",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -18,114 +19,134 @@ st.set_page_config(
 DB_FILE = "lab_queue.db"
 LOCAL_CERTS_DIR = r"C:\Users\Geoff.Hall\OneDrive - HYDAC Technology Corp\Desktop\LabQueueTracker\Certs"
 
-# HYDAC Modern Industrial UI Styling (Corporate Red & Dark Slate)
+# Modern High-Contrast Industrial UI (CSS)
 st.markdown(
     """
     <style>
-    /* HYDAC Corporate Palette */
+    /* HYDAC Dark Industrial Palette */
     :root {
         --hydac-red: #E30613;
-        --hydac-dark: #0F172A;
+        --hydac-red-glow: rgba(227, 6, 19, 0.25);
+        --hydac-dark: #0B0F17;
+        --hydac-card: #151C2C;
         --hydac-slate: #1E293B;
-        --hydac-bg: #F8FAFC;
-        --hydac-border: #E2E8F0;
+        --hydac-text: #F8FAFC;
+        --hydac-border: #2D3D58;
     }
 
-    /* Main Container Padding */
     .main .block-container {
-        padding-top: 1.5rem;
+        padding-top: 1.2rem;
         padding-bottom: 2.5rem;
         max-width: 96%;
     }
 
-    /* Enterprise Header Banner */
-    .hydac-header-card {
-        background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+    /* Futuristic Header Banner */
+    .hydac-banner {
+        background: linear-gradient(135deg, #0B0F17 0%, #1E293B 100%);
+        border: 1px solid #2D3D58;
         border-left: 6px solid #E30613;
-        border-radius: 8px;
-        padding: 20px 24px;
+        border-radius: 10px;
+        padding: 22px 28px;
         color: #FFFFFF;
-        box-shadow: 0 4px 14px rgba(0,0,0,0.06);
-        margin-bottom: 18px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        margin-bottom: 20px;
     }
-    .hydac-header-title {
-        font-size: 1.85rem;
-        font-weight: 700;
+    .hydac-title {
+        font-size: 1.95rem;
+        font-weight: 800;
         color: #FFFFFF;
         margin: 0;
         letter-spacing: -0.5px;
+        text-transform: uppercase;
     }
-    .hydac-header-subtitle {
+    .hydac-subtitle {
         font-size: 0.92rem;
         color: #94A3B8;
         margin-top: 4px;
         font-weight: 500;
     }
 
-    /* KPI Metrics Styling */
+    /* KPI Metric Cards */
     div[data-testid="stMetric"] {
-        background-color: #FFFFFF;
-        border: 1px solid #E2E8F0;
-        border-top: 3px solid #E30613;
-        border-radius: 8px;
-        padding: 14px 18px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+        background-color: #151C2C !important;
+        border: 1px solid #2D3D58 !important;
+        border-top: 3px solid #E30613 !important;
+        border-radius: 8px !important;
+        padding: 14px 18px !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
     }
     div[data-testid="stMetric"] label {
-        color: #475569 !important;
-        font-weight: 600 !important;
-        font-size: 0.85rem !important;
+        color: #94A3B8 !important;
+        font-weight: 700 !important;
+        font-size: 0.8rem !important;
+        text-transform: uppercase !important;
+    }
+    div[data-testid="stMetric"] [data-testid="stMetricValue"] {
+        color: #FFFFFF !important;
+        font-weight: 800 !important;
     }
 
-    /* Badges & Status Pills */
+    /* Status Badges */
     .badge-email {
-        background-color: #166534;
-        color: #DCFCE7;
-        padding: 4px 10px;
+        background-color: #059669;
+        color: #ECFDF5;
+        padding: 3px 10px;
         border-radius: 12px;
-        font-size: 0.8rem;
-        font-weight: 600;
+        font-size: 0.78rem;
+        font-weight: 700;
         display: inline-block;
     }
     .badge-reply {
-        background-color: #1E40AF;
-        color: #DBEAFE;
-        padding: 4px 10px;
+        background-color: #2563EB;
+        color: #EFF6FF;
+        padding: 3px 10px;
         border-radius: 12px;
-        font-size: 0.8rem;
-        font-weight: 600;
+        font-size: 0.78rem;
+        font-weight: 700;
         display: inline-block;
     }
+    .badge-urgent {
+        background-color: #E30613;
+        color: #FFFFFF;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 0.78rem;
+        font-weight: 800;
+        display: inline-block;
+        box-shadow: 0 0 8px rgba(227, 6, 19, 0.5);
+    }
 
-    /* Sidebar Customization */
+    /* Sidebar Styling */
     .sidebar-user-card {
-        background: #1E293B;
+        background: #151C2C;
+        border: 1px solid #2D3D58;
         border-left: 4px solid #E30613;
-        padding: 12px 16px;
-        border-radius: 6px;
+        padding: 14px 16px;
+        border-radius: 8px;
         color: #F8FAFC;
         margin-bottom: 15px;
     }
     .sidebar-section-header {
         font-size: 0.72rem;
         text-transform: uppercase;
-        letter-spacing: 1px;
-        color: #94A3B8;
-        font-weight: 700;
-        margin-top: 14px;
+        letter-spacing: 1.2px;
+        color: #E30613;
+        font-weight: 800;
+        margin-top: 16px;
         margin-bottom: 6px;
     }
 
-    /* Button Styling Overrides */
+    /* Form Buttons */
     div.stButton > button[kind="primary"] {
-        background-color: #E30613 !important;
+        background: linear-gradient(135deg, #E30613 0%, #A8000A 100%) !important;
         color: #FFFFFF !important;
         border: none !important;
-        font-weight: 600 !important;
+        font-weight: 700 !important;
         border-radius: 6px !important;
+        box-shadow: 0 4px 12px rgba(227, 6, 19, 0.3) !important;
     }
     div.stButton > button[kind="primary"]:hover {
-        background-color: #A8000A !important;
+        background: linear-gradient(135deg, #FF1A27 0%, #C4000C 100%) !important;
     }
     </style>
 """,
@@ -134,12 +155,43 @@ st.markdown(
 
 
 # =========================================================
-# HELPER FUNCTIONS & DATABASE DATA LOADER
+# DATABASE INIT & SCHEMA AUTO-REPAIR
 # =========================================================
+def init_db():
+  """Ensures the SQLite database table and all required columns exist."""
+  conn = sqlite3.connect(DB_FILE)
+  cursor = conn.cursor()
+  cursor.execute("""
+        CREATE TABLE IF NOT EXISTS queue (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            rga_number TEXT,
+            notification_number TEXT,
+            customer_name TEXT,
+            model_series TEXT,
+            serial_number TEXT,
+            status TEXT,
+            urgency INTEGER DEFAULT 5,
+            notes TEXT,
+            date_logged TEXT
+        )
+    """)
+
+  # Check missing columns
+  cursor.execute("PRAGMA table_info(queue)")
+  existing_cols = [col[1] for col in cursor.fetchall()]
+
+  if "urgency" not in existing_cols:
+    cursor.execute("ALTER TABLE queue ADD COLUMN urgency INTEGER DEFAULT 5")
+  if "date_logged" not in existing_cols:
+    cursor.execute("ALTER TABLE queue ADD COLUMN date_logged TEXT")
+
+  conn.commit()
+  conn.close()
+
+
 def load_data():
-  """Loads the lab queue dataframe cleanly from the local SQLite database."""
-  if not os.path.exists(DB_FILE):
-    return pd.DataFrame()
+  """Loads data safely from SQLite and returns a standardized pandas DataFrame."""
+  init_db()
   conn = sqlite3.connect(DB_FILE)
   try:
     df = pd.read_sql_query("SELECT * FROM queue", conn)
@@ -147,11 +199,165 @@ def load_data():
     df = pd.DataFrame()
   finally:
     conn.close()
+
+  if not df.empty:
+    if "urgency" not in df.columns:
+      df["urgency"] = 5
+    df["urgency"] = df["urgency"].fillna(5).astype(int)
+
+    if "date_logged" not in df.columns or df["date_logged"].isnull().all():
+      df["date_logged"] = datetime.now().strftime("%Y-%m-%d")
+
   return df
 
 
+def reset_and_seed_db():
+  """Completely resets database and seeds 10 realistic HYDAC Lab records."""
+  conn = sqlite3.connect(DB_FILE)
+  cursor = conn.cursor()
+  cursor.execute("DROP TABLE IF EXISTS queue")
+  cursor.execute("""
+        CREATE TABLE queue (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            rga_number TEXT,
+            notification_number TEXT,
+            customer_name TEXT,
+            model_series TEXT,
+            serial_number TEXT,
+            status TEXT,
+            urgency INTEGER DEFAULT 5,
+            notes TEXT,
+            date_logged TEXT
+        )
+    """)
+
+  demo_data = [
+      (
+          "60083000",
+          "20007503",
+          "Caterpillar Inc.",
+          "CS 1000 Contamination Sensor",
+          "000SS01831K0000003",
+          "Under Testing",
+          9,
+          "[Synced Email from Returns] Customer requesting urgent turnaround for lab calibration.",
+          "2026-10-12",
+      ),
+      (
+          "60083105",
+          "20007510",
+          "John Deere Corp.",
+          "FAM-10 Fluid Conditioning Unit",
+          "FAM10-998231-A",
+          "Received in Lab",
+          5,
+          "Standard warranty intake review pending technician assignment.",
+          "2026-10-18",
+      ),
+      (
+          "60083112",
+          "20007522",
+          "Komatsu Ltd.",
+          "FCU 1310 Portable Filtration Unit",
+          "FCU1310-88412-B",
+          "Pending Customer Info",
+          3,
+          "Waiting on customer clarification regarding operating hydraulic pressure.",
+          "2026-10-05",
+      ),
+      (
+          "60083120",
+          "20007530",
+          "Bosch Rexroth",
+          "Lab CalRig Sensor Array",
+          "CAL-90021-X",
+          "Completed",
+          2,
+          "[Synced Sent Reply] Calibration certificate generated and emailed to supervisor.",
+          "2026-09-28",
+      ),
+      (
+          "60083145",
+          "20007548",
+          "Parker Hannifin",
+          "AS 1000 AquaSensor Unit",
+          "AS1000-77621-C",
+          "Received in Lab",
+          7,
+          "Urgent field replacement requested under RGA 60083145.",
+          "2026-10-22",
+      ),
+      (
+          "60083150",
+          "20007555",
+          "Eaton Hydraulics",
+          "CS 2000 Particle Counter",
+          "CS2000-55102-D",
+          "Under Testing",
+          8,
+          "Laser diode calibration in progress on CalRig bench 2.",
+          "2026-10-15",
+      ),
+      (
+          "60083162",
+          "20007560",
+          "General Electric",
+          "HLP 6 Hydraulic Lab Pump",
+          "HLP6-33910-E",
+          "Received in Lab",
+          4,
+          "Visual inspection completed. Awaiting fluid analysis test results.",
+          "2026-10-20",
+      ),
+      (
+          "60083170",
+          "20007572",
+          "Volvo Construction",
+          "FCU 2000 Dehydration Unit",
+          "FCU2000-11209-F",
+          "Completed",
+          1,
+          "Repaired pump seal and dispatched back to customer via freight.",
+          "2026-09-15",
+      ),
+      (
+          "60083185",
+          "20007581",
+          "Siemens Energy",
+          "KineSys Servo Controller",
+          "KINE-88201-G",
+          "Pending Customer Info",
+          6,
+          "[Synced Email from Returns] Technical support requested failure logs from plant manager.",
+          "2026-10-10",
+      ),
+      (
+          "60083190",
+          "20007599",
+          "Danfoss Power",
+          "CS 1000 Particle Counter",
+          "CS1000-44109-H",
+          "Under Testing",
+          10,
+          "CRITICAL / EXPEDITE: High priority warranty evaluation for plant outage.",
+          "2026-10-25",
+      ),
+  ]
+
+  cursor.executemany(
+      """
+        INSERT INTO queue (rga_number, notification_number, customer_name, model_series, serial_number, status, urgency, notes, date_logged)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """,
+      demo_data,
+  )
+
+  conn.commit()
+  conn.close()
+
+
 def build_unit_dropdown_options(df):
-  """Formats dropdown labels into: RGA: X | Notif: Y | Model | SN: Z (Unit ID: N)"""
+  """Formats dropdown options into descriptive labels."""
   options_map = {}
   if df is None or df.empty:
     return options_map
@@ -170,41 +376,40 @@ def build_unit_dropdown_options(df):
         or "N/A"
     )
     sn = str(row.get("serial_number", "")).replace("nan", "").strip() or "N/A"
+    urgency = row.get("urgency", 5)
 
-    label = (
-        f"RGA: {rga} | Notif: {notif} | {model} | SN: {sn} (Unit ID: {unit_id})"
-    )
+    label = f"RGA: {rga} | Notif: {notif} | {model} | SN: {sn} [Priority: {urgency}/10] (ID: {unit_id})"
     options_map[label] = unit_id
 
   return options_map
 
 
-# Load dataset globally into memory
+# Load current queue state
 df_queue = load_data()
 
 
 # =========================================================
-# HEADER BANNER & ENVIRONMENT TOGGLE
+# HEADER BANNER & SYSTEM ENVIRONMENT TOGGLE
 # =========================================================
 col_logo, col_header = st.columns([1, 6])
 with col_logo:
   if os.path.exists("logo.png"):
-    st.image("logo.png", width=115)
+    st.image("logo.png", width=120)
   else:
     st.markdown("### ⚡ **HYDAC**")
 
 with col_header:
   st.markdown(
       """
-    <div class="hydac-header-card">
-        <div class="hydac-header-title">Enterprise Electronic Lab: Operations Command</div>
-        <div class="hydac-header-subtitle">HYDAC Technology Corp — Quality Control, Testing & Returns Operations</div>
+    <div class="hydac-banner">
+        <div class="hydac-title">Enterprise Electronic Lab Command Center</div>
+        <div class="hydac-subtitle">HYDAC Technology Corp — Quality Control, Calibration & Returns Management</div>
     </div>
     """,
       unsafe_allow_html=True,
   )
 
-# Environment Mode Toggle
+# Environment Mode Switch
 with st.container(border=True):
   toggle_col, status_col = st.columns([2, 3])
   with toggle_col:
@@ -215,27 +420,26 @@ with st.container(border=True):
   with status_col:
     if is_local_mode:
       st.success(
-          "Mode: **Local PC** — Direct folder creation enabled at:\n`"
-          + LOCAL_CERTS_DIR
-          + "`"
+          "Mode: **Local PC** — Direct local workstation folder generation"
+          f" enabled at:\n`{LOCAL_CERTS_DIR}`"
       )
     else:
       st.info(
-          "Mode: **Streamlit Cloud** — Read-only web mode (Folder creation"
-          " disabled)."
+          "Mode: **Streamlit Cloud** — Read-only web mode (Local file system"
+          " creation restricted)."
       )
 
 
 # =========================================================
-# SIDEBAR NAVIGATION & CATEGORIZED WORKFLOWS
+# SIDEBAR NAVIGATION & CATEGORY ROUTING
 # =========================================================
 with st.sidebar:
   st.markdown(
       """
     <div class="sidebar-user-card">
-        <div style="font-size:0.75rem; color:#94A3B8; text-transform:uppercase;">Logged In User</div>
-        <div style="font-size:1.1rem; font-weight:700;">Geo Hall</div>
-        <div style="font-size:0.8rem; color:#E30613; font-weight:600;">Lab Lead / Developer</div>
+        <div style="font-size:0.7rem; color:#94A3B8; text-transform:uppercase; font-weight:700;">Active User</div>
+        <div style="font-size:1.15rem; font-weight:800; color:#FFFFFF;">Geo Hall</div>
+        <div style="font-size:0.8rem; color:#E30613; font-weight:700;">Lab Lead / Operations Lead</div>
     </div>
     """,
       unsafe_allow_html=True,
@@ -250,13 +454,12 @@ with st.sidebar:
       unsafe_allow_html=True,
   )
 
-  # Organized Category Navigation
   nav_category = st.selectbox(
-      "Select Category",
+      "Category",
       [
           "📊 Dashboard & Analytics",
           "📥 Intake & Unit Logging",
-          "⚙️ Queue & Cert Operations",
+          "⚙️ Queue & Folder Operations",
           "✉️ Outlook Email Sync",
           "🛠️ System Admin & Tools",
       ],
@@ -268,7 +471,6 @@ with st.sidebar:
       unsafe_allow_html=True,
   )
 
-  # Nested Views by Category
   if nav_category == "📊 Dashboard & Analytics":
     nav_choice = st.radio(
         "Workflow",
@@ -285,7 +487,7 @@ with st.sidebar:
         ],
         label_visibility="collapsed",
     )
-  elif nav_category == "⚙️ Queue & Cert Operations":
+  elif nav_category == "⚙️ Queue & Folder Operations":
     nav_choice = st.radio(
         "Workflow",
         [
@@ -316,71 +518,77 @@ with st.sidebar:
         label_visibility="collapsed",
     )
 
-# Re-query fresh database records
+# Refresh dataset state
 df_queue = load_data()
 
 
 # =========================================================
-# VIEW 1: EXECUTIVE QUEUE DASHBOARD
+# VIEW 1: EXECUTIVE COMMAND CENTER (DASHBOARD)
 # =========================================================
 if nav_choice == "View Queue Dashboard":
   st.subheader("📊 Active Lab Queue Command Center")
 
   if df_queue.empty:
-    st.warning("No records found in `lab_queue.db`.")
+    st.warning(
+        "No active unit records found in database. Go to **Demo & Reset"
+        " Controls** in the sidebar to populate test data!"
+    )
   else:
     # Executive KPI Summary Cards
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Total Active Units", len(df_queue))
 
-    synced_emails_count = (
+    high_urgency = (df_queue["urgency"] >= 8).sum()
+    m2.metric("Critical / Rush Units (8-10)", high_urgency)
+
+    synced_emails = (
         df_queue["notes"]
         .dropna()
-        .apply(lambda x: "[Synced Email" in str(x))
+        .apply(lambda x: "[Synced" in str(x))
         .sum()
         if "notes" in df_queue.columns
         else 0
     )
-    m2.metric("Units with Synced Emails", synced_emails_count)
+    m3.metric("Units with Synced Emails", synced_emails)
 
     rga_count = (
         df_queue["rga_number"].dropna().replace("nan", "").ne("").sum()
         if "rga_number" in df_queue.columns
         else 0
     )
-    m3.metric("Active RGAs", rga_count)
-
-    notif_count = (
-        df_queue["notification_number"].dropna().replace("nan", "").ne("").sum()
-        if "notification_number" in df_queue.columns
-        else 0
-    )
-    m4.metric("Active Notifications", notif_count)
+    m4.metric("Active RGAs", rga_count)
 
     st.markdown("---")
 
-    # Filter Bar
-    search_term = st.text_input(
-        "🔍 Search Queue (RGA, Notification, Customer, Model, Serial Number):",
-        placeholder="Type RGA, Serial Number, or Customer Name...",
+    # Search and Filter Controls
+    c_search, c_status = st.columns([3, 1])
+    search_term = c_search.text_input(
+        "🔍 Real-Time Filter (RGA, Notification, Customer, Model, Serial Number):",
+        placeholder="Search Caterpillar, CS 1000, 60083000...",
+    )
+    status_filter = c_status.selectbox(
+        "Filter by Status",
+        ["All Statuses"] + list(df_queue["status"].dropna().unique()),
     )
 
+    filtered_df = df_queue.copy()
+    if status_filter != "All Statuses":
+      filtered_df = filtered_df[filtered_df["status"] == status_filter]
+
     if search_term:
-      filter_mask = df_queue.astype(str).apply(
+      filter_mask = filtered_df.astype(str).apply(
           lambda col: col.str.contains(search_term, case=False)
       ).any(axis=1)
-      display_df = df_queue[filter_mask]
-    else:
-      display_df = df_queue
+      filtered_df = filtered_df[filter_mask]
 
-    # Display Queue Table inside Container Card
+    # Master Table Display
     with st.container(border=True):
-      st.markdown("#### 📋 Current Queue Master Table")
-      st.dataframe(display_df, use_container_width=True, hide_index=True)
+      st.markdown("#### 📋 Current Lab Queue Master Table")
+      st.dataframe(filtered_df, use_container_width=True, hide_index=True)
 
-    # Unit Inspector Tool
-    st.markdown("### 🔎 Deep Unit & Email Thread Inspection")
-    unit_map = build_unit_dropdown_options(display_df)
+    # Unit Inspection & Quick Action Panel
+    st.markdown("### 🔎 Deep Unit Inspection & Correspondence History")
+    unit_map = build_unit_dropdown_options(filtered_df)
 
     if unit_map:
       selected_inspect_label = st.selectbox(
@@ -389,35 +597,27 @@ if nav_choice == "View Queue Dashboard":
           key="inspect_select",
       )
       selected_id = unit_map[selected_inspect_label]
-      selected_row = display_df[display_df["id"] == selected_id].iloc[0]
+      selected_row = filtered_df[filtered_df["id"] == selected_id].iloc[0]
 
       with st.expander(
-          f"📋 Unit Details — ID #{selected_id} | RGA:"
+          f"📋 Unit Summary — ID #{selected_id} | RGA:"
           f" {selected_row.get('rga_number', 'N/A')}",
           expanded=True,
       ):
-        c1, c2, c3 = st.columns(3)
+        c1, c2, c3, c4 = st.columns(4)
         c1.write(f"**RGA Number:** `{selected_row.get('rga_number', 'N/A')}`")
         c2.write(
-            "**Notification Number:**"
+            "**Notification:**"
             f" `{selected_row.get('notification_number', 'N/A')}`"
         )
-        c3.write(
-            f"**Customer Name:** `{selected_row.get('customer_name', 'N/A')}`"
-        )
+        c3.write(f"**Customer:** `{selected_row.get('customer_name', 'N/A')}`")
+        c4.write(f"**Urgency:** `{selected_row.get('urgency', 5)}/10`")
 
-        c4, c5, c6 = st.columns(3)
-        c4.write(
-            "**Model / Item:**"
-            f" `{selected_row.get('model_series') or selected_row.get('model') or selected_row.get('item_description') or 'N/A'}`"
-        )
-        c5.write(
-            "**Serial Number:**"
-            f" `{selected_row.get('serial_number', 'N/A')}`"
-        )
-        c6.write(
-            f"**Status / Location:** `{selected_row.get('status', 'N/A')}`"
-        )
+        c5, c6, c7, c8 = st.columns(4)
+        c5.write(f"**Model:** `{selected_row.get('model_series', 'N/A')}`")
+        c6.write(f"**Serial Number:** `{selected_row.get('serial_number', 'N/A')}`")
+        c7.write(f"**Status:** `{selected_row.get('status', 'N/A')}`")
+        c8.write(f"**Date Logged:** `{selected_row.get('date_logged', 'N/A')}`")
 
         notes_val = str(selected_row.get("notes", "") or "")
         if "[Synced Email from Returns" in notes_val:
@@ -430,9 +630,14 @@ if nav_choice == "View Queue Dashboard":
               '<span class="badge-reply">✅ Outbox Reply Sent</span>',
               unsafe_allow_html=True,
           )
+        if int(selected_row.get("urgency", 5)) >= 8:
+          st.markdown(
+              '<span class="badge-urgent">🔥 CRITICAL / EXPEDITE</span>',
+              unsafe_allow_html=True,
+          )
 
         st.text_area(
-            "Outcome / Notes History:",
+            "Full Unit Activity & Email Notes History:",
             value=notes_val,
             height=200,
             disabled=True,
@@ -445,14 +650,17 @@ elif nav_choice == "Log New Item (Single)":
   st.subheader("📝 Log New Unit into Lab Queue")
   with st.form("new_unit_form"):
     c1, c2 = st.columns(2)
-    f_rga = c1.text_input("RGA Number")
+    f_rga = c1.text_input("RGA Number*")
     f_notif = c2.text_input("Notification Number")
 
     c3, c4 = st.columns(2)
     f_cust = c3.text_input("Customer Name")
-    f_model = c4.text_input("Model / Item Description")
+    f_model = c4.text_input("Model Series / Description*")
 
-    f_sn = st.text_input("Serial Number")
+    c5, c6 = st.columns(2)
+    f_sn = c5.text_input("Serial Number*")
+    f_urgency = c6.slider("Priority / Urgency Score", 1, 10, 5)
+
     f_status = st.selectbox(
         "Initial Status",
         [
@@ -462,22 +670,41 @@ elif nav_choice == "Log New Item (Single)":
             "Completed",
         ],
     )
-    f_notes = st.text_area("Initial Notes")
+    f_notes = st.text_area("Initial Intake Notes")
 
-    submit_btn = st.form_submit_button("➕ Log Unit", type="primary")
+    submit_btn = st.form_submit_button("➕ Log Unit into Queue", type="primary")
     if submit_btn:
-      conn = sqlite3.connect(DB_FILE)
-      cursor = conn.cursor()
-      cursor.execute(
-          """
-            INSERT INTO queue (rga_number, notification_number, customer_name, model_series, serial_number, status, notes)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """,
-          (f_rga, f_notif, f_cust, f_model, f_sn, f_status, f_notes),
-      )
-      conn.commit()
-      conn.close()
-      st.success(f"✅ Successfully logged unit RGA: {f_rga} | SN: {f_sn}")
+      if f_rga and f_sn and f_model:
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+                INSERT INTO queue (rga_number, notification_number, customer_name, model_series, serial_number, status, urgency, notes, date_logged)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                f_rga,
+                f_notif,
+                f_cust,
+                f_model,
+                f_sn,
+                f_status,
+                f_urgency,
+                f_notes,
+                datetime.now().strftime("%Y-%m-%d"),
+            ),
+        )
+        conn.commit()
+        conn.close()
+        st.success(
+            f"✅ Successfully logged unit RGA: `{f_rga}` | SN: `{f_sn}` into"
+            " database!"
+        )
+      else:
+        st.error(
+            "Please fill in all required fields marked with * (RGA, Model,"
+            " Serial Number)."
+        )
 
 # =========================================================
 # VIEW 3: LOG MULTIPLE UNITS (BATCH PER RGA)
@@ -485,36 +712,42 @@ elif nav_choice == "Log New Item (Single)":
 elif nav_choice == "Log Multiple Units (Batch per RGA)":
   st.subheader("📦 Batch Log Multiple Serial Numbers")
   c1, c2 = st.columns(2)
-  batch_rga = c1.text_input("RGA Number for Batch:")
+  batch_rga = c1.text_input("Parent RGA Number for Batch*:")
   batch_notif = c2.text_input("Notification Number:")
 
   c3, c4 = st.columns(2)
   batch_cust = c3.text_input("Customer Name:")
-  batch_model = c4.text_input("Model / Item Description:")
+  batch_model = c4.text_input("Model Series / Description*:")
 
-  batch_sns = st.text_area("Enter Serial Numbers (One per line):")
+  batch_sns = st.text_area(
+      "Enter Child Serial Numbers* (One serial number per line):"
+  )
 
-  if st.button("🚀 Process Batch Logging", type="primary"):
+  if st.button("🚀 Process Batch Intake", type="primary"):
     sn_list = [s.strip() for s in batch_sns.split("\n") if s.strip()]
-    if sn_list:
+    if batch_rga and batch_model and sn_list:
       conn = sqlite3.connect(DB_FILE)
       cursor = conn.cursor()
+      today_str = datetime.now().strftime("%Y-%m-%d")
       for sn in sn_list:
         cursor.execute(
             """
-                INSERT INTO queue (rga_number, notification_number, customer_name, model_series, serial_number, status)
-                VALUES (?, ?, ?, ?, ?, 'Received in Lab')
+                INSERT INTO queue (rga_number, notification_number, customer_name, model_series, serial_number, status, urgency, date_logged)
+                VALUES (?, ?, ?, ?, ?, 'Received in Lab', 5, ?)
             """,
-            (batch_rga, batch_notif, batch_cust, batch_model, sn),
+            (batch_rga, batch_notif, batch_cust, batch_model, sn, today_str),
         )
       conn.commit()
       conn.close()
       st.success(
-          f"✅ Successfully batch logged {len(sn_list)} units under RGA"
-          f" {batch_rga}!"
+          f"✅ Successfully batch-logged {len(sn_list)} serial number(s) under"
+          f" RGA `{batch_rga}`!"
       )
     else:
-      st.warning("Please enter at least one valid serial number.")
+      st.error(
+          "Please enter a Parent RGA Number, Model, and at least one valid"
+          " Serial Number."
+      )
 
 # =========================================================
 # VIEW 4: BULK IMPORT & STAGED REVIEW
@@ -522,7 +755,7 @@ elif nav_choice == "Log Multiple Units (Batch per RGA)":
 elif nav_choice == "Bulk Import & Staged Review":
   st.subheader("📥 Bulk Data Import (Excel / CSV)")
   uploaded_file = st.file_uploader(
-      "Upload Excel or CSV file:", type=["csv", "xlsx"]
+      "Upload CSV or Excel file to stage:", type=["csv", "xlsx"]
   )
   if uploaded_file:
     try:
@@ -530,6 +763,7 @@ elif nav_choice == "Bulk Import & Staged Review":
         import_df = pd.read_csv(uploaded_file)
       else:
         import_df = pd.read_excel(uploaded_file)
+
       st.markdown("#### Staged Data Preview")
       st.dataframe(import_df.head(10), use_container_width=True)
 
@@ -541,10 +775,10 @@ elif nav_choice == "Bulk Import & Staged Review":
         conn.close()
         st.success(
             f"✅ Successfully appended {len(import_df)} records into"
-            " lab_queue.db!"
+            " `lab_queue.db`!"
         )
     except Exception as e:
-      st.error(f"❌ Error reading file: {e}")
+      st.error(f"❌ Error parsing file: {e}")
 
 # =========================================================
 # VIEW 5: UPDATE EXISTING ITEM
@@ -579,9 +813,14 @@ elif nav_choice == "Update Existing Item":
           "Model / Item", value=str(sel_row.get("model_series", ""))
       )
 
-      u_sn = st.text_input(
+      c5, c6 = st.columns(2)
+      u_sn = c5.text_input(
           "Serial Number", value=str(sel_row.get("serial_number", ""))
       )
+      u_urgency = c6.slider(
+          "Urgency Score", 1, 10, int(sel_row.get("urgency", 5))
+      )
+
       u_status = st.text_input("Status", value=str(sel_row.get("status", "")))
       u_notes = st.text_area("Notes", value=str(sel_row.get("notes", "")))
 
@@ -590,14 +829,24 @@ elif nav_choice == "Update Existing Item":
         cursor = conn.cursor()
         cursor.execute(
             """
-                UPDATE queue SET rga_number=?, notification_number=?, customer_name=?, model_series=?, serial_number=?, status=?, notes=?
+                UPDATE queue SET rga_number=?, notification_number=?, customer_name=?, model_series=?, serial_number=?, status=?, urgency=?, notes=?
                 WHERE id=?
             """,
-            (u_rga, u_notif, u_cust, u_model, u_sn, u_status, u_notes, sel_id),
+            (
+                u_rga,
+                u_notif,
+                u_cust,
+                u_model,
+                u_sn,
+                u_status,
+                u_urgency,
+                u_notes,
+                sel_id,
+            ),
         )
         conn.commit()
         conn.close()
-        st.success(f"✅ Record ID {sel_id} updated successfully!")
+        st.success(f"✅ Record ID #{sel_id} updated successfully!")
 
 # =========================================================
 # VIEW 6: GENERATE SUPPORT EMAIL
@@ -605,18 +854,18 @@ elif nav_choice == "Update Existing Item":
 elif nav_choice == "Generate Support Email":
   st.subheader("✉️ Generate Support Notification Email")
   if df_queue.empty:
-    st.warning("No units available.")
+    st.warning("No units available in database.")
   else:
     unit_map = build_unit_dropdown_options(df_queue)
     sel_label = st.selectbox(
-        "Select Target Unit:", options=list(unit_map.keys())
+        "Select Target Unit for Email:", options=list(unit_map.keys())
     )
     sel_id = unit_map[sel_label]
     sel_row = df_queue[df_queue["id"] == sel_id].iloc[0]
 
     email_body = f"""Subject: HYDAC Electronic Lab Status Update - RGA: {sel_row.get('rga_number', 'N/A')}
 
-Hello,
+Hello {sel_row.get('customer_name', 'Customer')},
 
 The following unit is currently in process at the HYDAC Electronic Lab:
 
@@ -625,14 +874,18 @@ The following unit is currently in process at the HYDAC Electronic Lab:
 - Model Series: {sel_row.get('model_series', 'N/A')}
 - Serial Number: {sel_row.get('serial_number', 'N/A')}
 - Current Status: {sel_row.get('status', 'N/A')}
+- Priority Score: {sel_row.get('urgency', 5)}/10
 
-Notes:
+Notes / Test Log:
 {sel_row.get('notes', 'N/A')}
 
 Best regards,
 HYDAC Electronic Lab Team
+1700 Fairgrounds Rd, Bethlehem, PA 18018
 """
-    st.text_area("Copy Generated Email:", value=email_body, height=280)
+    st.text_area(
+        "Copy Pre-Populated Outlook Email Draft:", value=email_body, height=300
+    )
 
 # =========================================================
 # VIEW 7: SYNC EMAILS FROM RETURNS
@@ -641,7 +894,7 @@ elif nav_choice == "Sync Emails from Returns":
   st.subheader("📩 Synced Returns Email Inbox")
   st.info(
       "Emails from Returns are automatically scanned by `sync_outlook.py`"
-      " locally on your PC."
+      " locally on your workstation."
   )
   email_units = df_queue[
       df_queue["notes"]
@@ -649,7 +902,7 @@ elif nav_choice == "Sync Emails from Returns":
       .str.contains("\\[Synced Email from Returns", case=False)
   ]
   if email_units.empty:
-    st.warning("No synced Returns emails found in database.")
+    st.warning("No synced Returns emails found in current database records.")
   else:
     unit_map = build_unit_dropdown_options(email_units)
     sel_label = st.selectbox(
@@ -666,14 +919,17 @@ elif nav_choice == "Sync Emails from Returns":
 # =========================================================
 elif nav_choice == "Sync Sent Items (Outbox & Replies)":
   st.subheader("📤 Sync Outlook Sent Items")
-  st.warning("Outlook integration requires Windows desktop environment.")
+  st.warning(
+      "Outlook integration requires running `sync_outlook.py` locally on"
+      " Windows."
+  )
   sent_units = df_queue[
       df_queue["notes"]
       .fillna("")
       .str.contains("\\[Synced Sent Reply", case=False)
   ]
   if sent_units.empty:
-    st.info("No sent email replies currently tagged in database.")
+    st.info("No sent email replies currently tagged in database records.")
   else:
     unit_map = build_unit_dropdown_options(sent_units)
     sel_label = st.selectbox(
@@ -691,38 +947,63 @@ elif nav_choice == "Sync Sent Items (Outbox & Replies)":
 # VIEW 9: SUPERVISOR URGENCY OVERRIDE
 # =========================================================
 elif nav_choice == "Supervisor Urgency Override":
-  st.subheader("⚡ Supervisor Urgency & Escalation Override")
+  st.subheader("⚡ Supervisor Urgency & Priority Escalation Override")
   if df_queue.empty:
     st.warning("No active units available.")
   else:
     unit_map = build_unit_dropdown_options(df_queue)
     sel_label = st.selectbox(
-        "Select Unit to Escalate:", options=list(unit_map.keys())
+        "Select Unit to Override Priority:", options=list(unit_map.keys())
     )
     sel_id = unit_map[sel_label]
-    urgency_level = st.select_slider(
-        "Set Priority Level",
-        options=["Normal", "High Priority", "CRITICAL / EXPEDITE"],
+    sel_row = df_queue[df_queue["id"] == sel_id].iloc[0]
+
+    st.write(
+        f"**Current Priority:** `{sel_row.get('urgency', 5)}/10` |"
+        f" **Status:** `{sel_row.get('status', 'N/A')}`"
     )
 
-    if st.button("Apply Urgency Flag", type="primary"):
+    new_urgency = st.slider(
+        "Set Manager Urgency Score (1 = Low, 10 = Critical/Expedite)",
+        1,
+        10,
+        int(sel_row.get("urgency", 5)),
+    )
+    new_status = st.selectbox(
+        "Update Workflow Status",
+        [
+            "Received in Lab",
+            "Under Testing",
+            "Pending Customer Info",
+            "CRITICAL / EXPEDITE",
+            "Completed",
+        ],
+    )
+    override_reason = st.text_input("Manager Override Justification / Reason:")
+
+    if st.button("⚡ Apply Priority Override", type="primary"):
       conn = sqlite3.connect(DB_FILE)
       cursor = conn.cursor()
+      updated_notes = (
+          str(sel_row.get("notes", ""))
+          + f"\n[Supervisor Override ({datetime.now().strftime('%Y-%m-%d %H:%M')}): Priority set to {new_urgency}/10. Reason: {override_reason}]"
+      )
       cursor.execute(
-          "UPDATE queue SET status=? WHERE id=?",
-          (f"URGENT: {urgency_level}", sel_id),
+          "UPDATE queue SET urgency=?, status=?, notes=? WHERE id=?",
+          (new_urgency, new_status, updated_notes, sel_id),
       )
       conn.commit()
       conn.close()
       st.success(
-          f"✅ Applied urgency status `{urgency_level}` to Unit ID {sel_id}!"
+          f"✅ Applied Manager Priority Score `{new_urgency}/10` to Unit ID"
+          f" #{sel_id}!"
       )
 
 # =========================================================
 # VIEW 10: CREATE SERIAL CERT FOLDER
 # =========================================================
 elif nav_choice == "Create Serial Cert Folder":
-  st.subheader("📁 Create Serial Cert Folder")
+  st.subheader("📁 Create Local Serial Cert Folder")
 
   if df_queue.empty:
     st.warning("No unit records available in database.")
@@ -753,7 +1034,7 @@ elif nav_choice == "Create Serial Cert Folder":
       st.markdown("---")
 
       if is_local_mode:
-        if st.button("📁 Create Folder & Copy Template", type="primary"):
+        if st.button("📁 Create Folder & Setup Cert Template", type="primary"):
           rga_clean = (
               str(selected_row.get("rga_number", "UNKNOWN"))
               .replace("nan", "")
@@ -771,17 +1052,29 @@ elif nav_choice == "Create Serial Cert Folder":
 
           try:
             os.makedirs(target_dir, exist_ok=True)
+
+            # Generate template text file inside directory
+            template_path = os.path.join(
+                target_dir, f"Cert_Template_{sn_clean}.txt"
+            )
+            with open(template_path, "w", encoding="utf-8") as f:
+              f.write(
+                  f"HYDAC CERTIFICATE RECORD\nRGA: {rga_clean}\nSN:"
+                  f" {sn_clean}\nDate:"
+                  f" {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+              )
+
             st.success(
-                f"✅ Folder successfully created locally:\n`{target_dir}`"
+                f"✅ Folder structure successfully generated locally at:\n`{target_dir}`"
             )
           except Exception as err:
             st.error(f"❌ Failed to create folder directory: {err}")
       else:
         st.warning(
             "⚠️ **Local folder creation is disabled in Streamlit Cloud"
-            " mode.**\n\nTo create folders on your PC:\n1. Run the app locally"
-            " via `run_app.bat`.\n2. Switch the **Enable Local PC Mode** toggle"
-            " at the top to **ON**."
+            " mode.**\n\nTo generate folders on your PC:\n1. Launch the app"
+            " locally via `run_app.bat`.\n2. Switch the **Enable Local PC Mode**"
+            " toggle at the top to **ON**."
         )
 
 # =========================================================
@@ -789,46 +1082,86 @@ elif nav_choice == "Create Serial Cert Folder":
 # =========================================================
 elif nav_choice == "⚙️ View-Only Display Config":
   st.subheader("⚙️ Display Column Preferences")
-  st.write("Configure which columns to highlight on the main queue dashboard:")
+  st.write("Configure column preferences for the main queue dashboard:")
   show_rga = st.checkbox("Display RGA Column", value=True)
   show_notif = st.checkbox("Display Notification Column", value=True)
   show_sn = st.checkbox("Display Serial Number Column", value=True)
-  st.success("Preferences applied to session context.")
+  st.success("Preferences saved to local session context.")
 
 # =========================================================
 # VIEW 12: DEMO & RESET CONTROLS
 # =========================================================
 elif nav_choice == "Demo & Reset Controls":
-  st.subheader("⚠️ Operations Command Controls")
-  st.error("Danger Zone: Database operations")
-  if st.button("🔄 Refresh Database Cache"):
-    st.cache_data.clear()
-    st.success("Cache flushed cleanly.")
+  st.subheader("🛠️ Operations Command Reset & Demo Seeder")
+  st.markdown(
+      "Use these tools to re-seed the SQLite database with fresh demo lab"
+      " records or clear system cache."
+  )
+
+  c_seed, c_clear = st.columns(2)
+
+  with c_seed:
+    with st.container(border=True):
+      st.markdown("#### 🔄 Reset & Seed Demo Data")
+      st.caption(
+          "Wipes current queue database and inserts 10 realistic HYDAC lab"
+          " records (CS 1000, FAM-10, Caterpillar, John Deere)."
+      )
+      if st.button("🌱 Execute Database Reset & Seed", type="primary"):
+        reset_and_seed_db()
+        st.cache_data.clear()
+        st.success(
+            "✅ Database reset complete! 10 sample records populated into"
+            " `lab_queue.db`."
+        )
+        st.rerun()
+
+  with c_clear:
+    with st.container(border=True):
+      st.markdown("#### 🧹 Flush App Cache")
+      st.caption(
+          "Flushes Streamlit's internal memory cache without deleting database"
+          " records."
+      )
+      if st.button("🔄 Clear App Cache"):
+        st.cache_data.clear()
+        st.success("App cache cleared successfully.")
 
 # =========================================================
 # VIEW 13: MONTHLY VOLUME ANALYTICS
 # =========================================================
 elif nav_choice == "Monthly Volume Analytics":
-  st.subheader("📈 Monthly Volume Analytics")
+  st.subheader("📈 Monthly Volume & Status Analytics")
   if df_queue.empty:
     st.warning("No data available for analytics.")
   else:
-    st.metric("Total Items Processed", len(df_queue))
+    c1, c2 = st.columns(2)
+    c1.metric("Total Processed Records", len(df_queue))
+    c2.metric("Critical Urgency Units", (df_queue["urgency"] >= 8).sum())
+
+    st.markdown("---")
+    st.markdown("#### Units Breakdown by Workflow Status")
     st.bar_chart(df_queue["status"].value_counts())
+
+    st.markdown("#### Priority Distribution (Urgency Scores 1 to 10)")
+    st.bar_chart(df_queue["urgency"].value_counts())
 
 # =========================================================
 # VIEW 14: BACKUP & DATA EXPORT
 # =========================================================
 elif nav_choice == "Backup & Data Export":
-  st.subheader("📥 Data Export & Database Backup")
+  st.subheader("📥 Data Export & Database Snapshot")
 
   if not df_queue.empty:
+    st.markdown(
+        "Download a complete snapshot of all active records from `lab_queue.db`:"
+    )
     c_csv, c_excel = st.columns(2)
 
     with c_csv:
       csv_bytes = df_queue.to_csv(index=False).encode("utf-8")
       st.download_button(
-          label="📥 Download CSV Export",
+          label="📥 Download CSV Snapshot",
           data=csv_bytes,
           file_name="lab_queue_backup.csv",
           mime="text/csv",
