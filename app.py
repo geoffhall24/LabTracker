@@ -321,12 +321,13 @@ if not st.session_state["authenticated"]:
 
 
 # =========================================================
-# DATABASE INITIALIZATION & SCHEMA AUTO-REPAIR
+# DATABASE INITIALIZATION & SELF-HEALING SCHEMA MIGRATION
 # =========================================================
 def init_db():
-  """Ensures SQLite database schema exists with location, form, and accessory tracking."""
+  """Ensures SQLite database schema exists and auto-repairs any legacy missing columns."""
   conn = sqlite3.connect(DB_FILE)
   cursor = conn.cursor()
+
   cursor.execute("""
         CREATE TABLE IF NOT EXISTS queue (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -354,23 +355,38 @@ def init_db():
     """)
 
   cursor.execute("PRAGMA table_info(queue)")
-  cols = [col[1] for col in cursor.fetchall()]
+  existing_cols = [col[1] for col in cursor.fetchall()]
 
   needed_cols = {
+      "rga_number": "TEXT",
+      "notification_number": "TEXT",
+      "customer_name": "TEXT",
       "csr_name": "TEXT",
       "service_requested": "TEXT DEFAULT 'Calibration'",
+      "model_series": "TEXT",
+      "serial_number": "TEXT",
       "location": "TEXT DEFAULT 'Ready for Evaluation'",
+      "status": "TEXT DEFAULT 'Received in Lab'",
+      "urgency": "INTEGER DEFAULT 5",
+      "assigned_to": "TEXT DEFAULT 'Unassigned'",
       "accessories": "TEXT",
       "visual_inspection": "TEXT",
       "eval_form_type": "TEXT",
       "eval_data": "TEXT",
+      "notes": "TEXT",
+      "photo_path": "TEXT",
       "cal_file_path": "TEXT",
+      "date_logged": "TEXT",
       "customer_hold_date": "TEXT",
   }
 
+  # Self-healing migration loop to alter legacy tables safely
   for col_name, col_type in needed_cols.items():
-    if col_name not in cols:
-      cursor.execute(f"ALTER TABLE queue ADD COLUMN {col_name} {col_type}")
+    if col_name not in existing_cols:
+      try:
+        cursor.execute(f"ALTER TABLE queue ADD COLUMN {col_name} {col_type}")
+      except Exception:
+        pass
 
   conn.commit()
   conn.close()
@@ -623,7 +639,6 @@ def reset_and_seed_db():
       ),
   ]
 
-  # EXACT MATCH: 20 target columns matched to 20 SQL ? parameters
   cursor.executemany(
       """
         INSERT INTO queue (
@@ -815,7 +830,6 @@ if nav_choice == "🖥️ Operations Queue (TV Display)":
         " Tools** to populate demo data!"
     )
   else:
-    # Summary Metrics across shelves
     inbound_cnt = (df_queue["location"] == "Inbound Material").sum()
     ready_cnt = (df_queue["location"] == "Ready for Evaluation").sum()
     waiting_cnt = (
@@ -831,7 +845,6 @@ if nav_choice == "🖥️ Operations Queue (TV Display)":
 
     st.markdown("---")
 
-    # Search & Filters
     c_search, c_shelf, c_owner = st.columns([2.5, 1.2, 1.2])
     search_term = c_search.text_input(
         "🔍 SEARCH QUEUE (RGA, CUSTOMER, MODEL, S/N):",
@@ -877,7 +890,6 @@ if nav_choice == "🖥️ Operations Queue (TV Display)":
 
     st.markdown("### 📋 Active Request Queue (TV Dashboard View)")
 
-    # Parent RGA Grouping
     parent_groups = filtered_df.groupby("rga_number")
 
     for rga, group in parent_groups:
@@ -1106,7 +1118,8 @@ elif nav_choice == "📥 Phase 1: Inbound Intake":
 
           conn = sqlite3.connect(DB_FILE)
           cursor = conn.cursor()
-          # EXACT MATCH: 11 target columns matched to 11 SQL ? parameters
+
+          # Explicitly 11 target columns to 11 values
           cursor.execute(
               """
                         INSERT INTO queue (
@@ -1187,7 +1200,6 @@ elif nav_choice == "📥 Phase 1: Inbound Intake":
           conn = sqlite3.connect(DB_FILE)
           cursor = conn.cursor()
           for sn in sn_list:
-            # EXACT MATCH: 11 target columns matched to 11 SQL ? parameters
             cursor.execute(
                 """
                             INSERT INTO queue (
@@ -1340,7 +1352,6 @@ elif nav_choice == "🔬 Phase 2: Evaluation & Testing":
 
         today_str = datetime.now().strftime("%Y-%m-%d")
 
-        # EXACT MATCH: 8 placeholders matched to 8 query parameters
         if target_shelf == "Waiting for Customer Response":
           cursor.execute(
               """
@@ -1358,7 +1369,6 @@ elif nav_choice == "🔬 Phase 2: Evaluation & Testing":
                   sel_id,
               ),
           )
-        # EXACT MATCH: 7 placeholders matched to 7 query parameters
         else:
           cursor.execute(
               """
