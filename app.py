@@ -1,6 +1,6 @@
 import io
-import os
 import json
+import os
 import sqlite3
 from datetime import datetime, timedelta
 import pandas as pd
@@ -1339,6 +1339,8 @@ elif nav_choice == "🔬 Phase 2: Evaluation & Testing":
         cursor = conn.cursor()
 
         today_str = datetime.now().strftime("%Y-%m-%d")
+
+        # EXACT MATCH: 8 placeholders matched to 8 query parameters
         if target_shelf == "Waiting for Customer Response":
           cursor.execute(
               """
@@ -1356,6 +1358,7 @@ elif nav_choice == "🔬 Phase 2: Evaluation & Testing":
                   sel_id,
               ),
           )
+        # EXACT MATCH: 7 placeholders matched to 7 query parameters
         else:
           cursor.execute(
               """
@@ -1414,7 +1417,7 @@ elif nav_choice == "⏱️ Waiting for Customer (30-Day Tracker)":
         )
       else:
         urgency_badge = (
-            f'<span class="badge-waiting"><i class="fa-solid fa-clock"></i>'
+            f'<span class="badge-warn"><i class="fa-solid fa-clock"></i>'
             f" {days_remaining} Days Remaining</span>"
         )
 
