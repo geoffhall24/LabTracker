@@ -6,7 +6,7 @@ import pandas as pd
 import streamlit as st
 
 # =========================================================
-# PAGE CONFIGURATION & FUTURISTIC HUD THEME
+# PAGE CONFIGURATION & LIGHT EXECUTIVE INDUSTRIAL THEME
 # =========================================================
 st.set_page_config(
     page_title="HYDAC Lab Operations Command OS",
@@ -21,7 +21,7 @@ UPLOADS_DIR = r"C:\Users\Geoff.Hall\OneDrive - HYDAC Technology Corp\Desktop\Lab
 
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 
-# High-Contrast Cyberpunk & Explicit Icon CSS Injection
+# High-Contrast Light Theme CSS Injection
 st.markdown(
     """
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -30,14 +30,11 @@ st.markdown(
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet">
 
     <style>
-    /* Dark Radial Grid Background */
+    /* Light Slate Canvas */
     .stApp {
-        background-color: #060911 !important;
-        background-image: radial-gradient(rgba(227, 6, 19, 0.25) 0.8px, transparent 0.8px), radial-gradient(rgba(255, 255, 255, 0.05) 0.8px, #060911 0.8px) !important;
-        background-size: 28px 28px !important;
-        background-position: 0 0, 14px 14px !important;
+        background-color: #F1F5F9 !important;
         font-family: 'Inter', sans-serif !important;
-        color: #FFFFFF !important;
+        color: #0F172A !important;
     }
 
     .main .block-container {
@@ -48,139 +45,208 @@ st.markdown(
 
     h1, h2, h3, h4, .font-heading {
         font-family: 'Montserrat', sans-serif !important;
-        color: #FFFFFF !important;
+        color: #0F172A !important;
         letter-spacing: -0.3px;
     }
 
+    /* Universal Text Readability */
     p, span, label, div, .stMarkdown {
-        color: #FFFFFF !important;
+        color: #0F172A !important;
     }
 
-    /* EXPLICIT BUTTON & ICON VISIBILITY FIX */
-    div.stButton > button {
-        background: #1E293B !important;
-        color: #FFFFFF !important;
-        border: 1px solid #334155 !important;
+    /* WIDGET LABELS */
+    .stWidgetLabel, label[data-testid="stWidgetLabel"], div[data-testid="stWidgetLabel"] p {
+        color: #1E293B !important;
         font-weight: 800 !important;
         font-size: 0.85rem !important;
-        border-radius: 10px !important;
-        padding: 8px 16px !important;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important;
-        transition: all 0.2s ease-in-out !important;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+        margin-bottom: 6px !important;
     }
 
-    div.stButton > button * {
-        color: #FFFFFF !important; /* Forces inner button icons and text to render bright white */
-    }
-
-    div.stButton > button:hover {
-        background: linear-gradient(135deg, #E30613 0%, #99000B 100%) !important;
-        border-color: #FF3344 !important;
-        color: #FFFFFF !important;
-        box-shadow: 0 0 16px rgba(227, 6, 19, 0.7) !important;
-    }
-
-    div.stButton > button[kind="primary"] {
-        background: linear-gradient(135deg, #E30613 0%, #99000B 100%) !important;
-        color: #FFFFFF !important;
-        border: 1px solid #FF3344 !important;
-        box-shadow: 0 4px 16px rgba(227, 6, 19, 0.5) !important;
-    }
-
-    /* SEGMENTED CONTROL / NAVIGATION TABS VISIBILITY */
+    /* SEGMENTED CONTROL / NAVIGATION TABS */
     div[data-testid="stSegmentedControl"] {
-        background-color: #0F172A !important;
+        background-color: #E2E8F0 !important;
         padding: 6px !important;
-        border-radius: 14px !important;
-        border: 1px solid #1E293B !important;
+        border-radius: 12px !important;
+        border: 1px solid #CBD5E1 !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04) !important;
     }
 
     div[data-testid="stSegmentedControl"] button {
-        background-color: #1E293B !important;
-        color: #FFFFFF !important;
-        border: 1px solid #334155 !important;
+        background-color: #FFFFFF !important;
+        color: #0F172A !important;
+        border: 1px solid #CBD5E1 !important;
         font-weight: 800 !important;
-        border-radius: 10px !important;
+        font-size: 0.88rem !important;
+        border-radius: 8px !important;
+        padding: 8px 16px !important;
+    }
+
+    div[data-testid="stSegmentedControl"] button:hover {
+        background-color: #F8FAFC !important;
+        border-color: #E30613 !important;
+        color: #E30613 !important;
     }
 
     div[data-testid="stSegmentedControl"] button[aria-selected="true"] {
-        background: linear-gradient(135deg, #E30613 0%, #99000B 100%) !important;
+        background-color: #E30613 !important;
         color: #FFFFFF !important;
-        border: 1px solid #FF3344 !important;
-        box-shadow: 0 0 15px rgba(227, 6, 19, 0.6) !important;
+        border: 1px solid #B91C1C !important;
+        box-shadow: 0 4px 12px rgba(227, 6, 19, 0.3) !important;
     }
 
-    /* INPUT FIELDS & PLACEHOLDERS */
-    input::placeholder, textarea::placeholder {
-        color: #94A3B8 !important;
-        opacity: 1 !important;
+    div[data-testid="stSegmentedControl"] button[aria-selected="true"] * {
+        color: #FFFFFF !important;
     }
 
+    /* EXPANDER HEADERS (PARENT RGA CARDS) */
+    details[data-testid="stExpander"] {
+        background-color: #FFFFFF !important;
+        border: 1px solid #CBD5E1 !important;
+        border-radius: 12px !important;
+        margin-bottom: 12px !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04) !important;
+    }
+
+    summary[data-testid="stExpanderSummary"] {
+        background-color: #F8FAFC !important;
+        border-radius: 12px !important;
+        padding: 14px 18px !important;
+        border-left: 5px solid #E30613 !important;
+    }
+
+    summary[data-testid="stExpanderSummary"] p, summary[data-testid="stExpanderSummary"] span {
+        color: #0F172A !important;
+        font-weight: 800 !important;
+        font-size: 1rem !important;
+    }
+
+    /* INPUT FIELDS, TEXTAREAS & SELECTBOXES */
     div[data-baseweb="input"] input, div[data-baseweb="textarea"] textarea {
-        background-color: #1E293B !important;
-        color: #FFFFFF !important;
-        border: 1px solid #334155 !important;
-        border-radius: 10px !important;
+        background-color: #FFFFFF !important;
+        color: #0F172A !important;
+        border: 1px solid #94A3B8 !important;
+        border-radius: 8px !important;
         font-weight: 600 !important;
+        padding: 10px 14px !important;
     }
 
-    /* HUD Command Banner */
+    input::placeholder, textarea::placeholder {
+        color: #64748B !important;
+        opacity: 1 !important;
+        font-weight: 500 !important;
+    }
+
+    div[data-baseweb="select"] > div {
+        background-color: #FFFFFF !important;
+        color: #0F172A !important;
+        border: 1px solid #94A3B8 !important;
+        border-radius: 8px !important;
+        font-weight: 700 !important;
+    }
+
+    /* HUD COMMAND HEADER BANNER */
     .hydac-banner {
-        background: linear-gradient(135deg, #0B0F19 0%, #1B1E32 50%, #151C2C 100%);
-        border: 1px solid rgba(227, 6, 19, 0.6);
+        background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
         border-left: 6px solid #E30613;
-        border-radius: 18px;
+        border-radius: 14px;
         padding: 22px 28px;
-        color: #FFFFFF;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 20px rgba(227, 6, 19, 0.2);
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.15);
         margin-bottom: 22px;
     }
+    .hydac-banner * {
+        color: #FFFFFF !important;
+    }
     .hydac-title {
-        font-size: 2.3rem;
+        font-size: 2.2rem;
         font-weight: 900;
-        color: #FFFFFF;
         letter-spacing: -0.5px;
         text-transform: uppercase;
         margin: 4px 0;
         font-family: 'Montserrat', sans-serif;
     }
 
-    /* Metric KPI Cards */
+    /* KPI METRIC CARDS */
     div[data-testid="stMetric"] {
-        background: #151C2C !important;
-        border: 1px solid #2D3D58 !important;
+        background: #FFFFFF !important;
+        border: 1px solid #CBD5E1 !important;
         border-top: 4px solid #E30613 !important;
-        border-radius: 14px !important;
+        border-radius: 12px !important;
         padding: 16px 20px !important;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
     }
     div[data-testid="stMetricValue"] div {
-        color: #FFFFFF !important;
-        font-size: 2.4rem !important;
+        color: #0F172A !important;
+        font-size: 2.3rem !important;
         font-weight: 900 !important;
         font-family: 'Montserrat', sans-serif !important;
     }
-
-    /* Expanders */
-    details[data-testid="stExpander"] {
-        background-color: #151C2C !important;
-        border: 1px solid #2D3D58 !important;
-        border-radius: 14px !important;
-        margin-bottom: 12px !important;
+    div[data-testid="stMetricLabel"] div {
+        color: #475569 !important;
+        font-weight: 800 !important;
+        font-size: 0.82rem !important;
+        text-transform: uppercase;
     }
-    summary[data-testid="stExpanderSummary"] {
+
+    /* WORKLOAD GAUGE CARD */
+    .gauge-card {
+        background: #FFFFFF;
+        border: 1px solid #CBD5E1;
+        border-radius: 14px;
+        padding: 20px 24px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        margin-bottom: 22px;
+    }
+    .gauge-bar-bg {
+        width: 100%;
+        height: 16px;
+        background-color: #E2E8F0;
+        border-radius: 20px;
+        border: 1px solid #CBD5E1;
+        overflow: hidden;
+        padding: 2px;
+    }
+    .gauge-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #E30613 0%, #FF4D5A 100%);
+        border-radius: 20px;
+        box-shadow: 0 0 10px rgba(227, 6, 19, 0.4);
+    }
+
+    /* STATUS BADGES */
+    .badge-fresh { background-color: #DCFCE7; color: #15803D; border: 1px solid #86EFAC; padding: 4px 12px; border-radius: 20px; font-weight: 800; display: inline-block; font-size: 0.78rem; }
+    .badge-warn { background-color: #FEF9C3; color: #A16207; border: 1px solid #FDE047; padding: 4px 12px; border-radius: 20px; font-weight: 800; display: inline-block; font-size: 0.78rem; }
+    .badge-critical { background-color: #FEE2E2; color: #B91C1C; border: 1px solid #FCA5A5; padding: 4px 12px; border-radius: 20px; font-weight: 800; display: inline-block; font-size: 0.78rem; }
+    .badge-owner { background-color: #DBEAFE; color: #1D4ED8; border: 1px solid #93C5FD; padding: 4px 12px; border-radius: 20px; font-weight: 800; display: inline-block; font-size: 0.78rem; }
+    .badge-unassigned { background-color: #F1F5F9; color: #475569; border: 1px solid #CBD5E1; padding: 4px 12px; border-radius: 20px; font-weight: 800; display: inline-block; font-size: 0.78rem; }
+
+    /* BUTTONS */
+    div.stButton > button {
+        background-color: #0F172A !important;
+        color: #FFFFFF !important;
+        border: 1px solid #0F172A !important;
+        font-weight: 700 !important;
+        border-radius: 8px !important;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1) !important;
+        transition: all 0.2s ease-in-out !important;
+    }
+    div.stButton > button * {
+        color: #FFFFFF !important;
+    }
+    div.stButton > button:hover {
         background-color: #1E293B !important;
-        border-radius: 14px !important;
-        padding: 14px 18px !important;
-        border-left: 5px solid #E30613 !important;
+        border-color: #1E293B !important;
     }
-
-    /* Badges */
-    .badge-fresh { background-color: #065F46; color: #34D399; border: 1px solid #10B981; padding: 4px 12px; border-radius: 20px; font-weight: 800; display: inline-block; }
-    .badge-warn { background-color: #854D0E; color: #FDE047; border: 1px solid #EAB308; padding: 4px 12px; border-radius: 20px; font-weight: 800; display: inline-block; }
-    .badge-critical { background-color: #991B1B; color: #FFAAAA; border: 1px solid #EF4444; padding: 4px 12px; border-radius: 20px; font-weight: 800; display: inline-block; box-shadow: 0 0 10px rgba(239, 68, 68, 0.5); }
-    .badge-owner { background-color: #1E3A8A; color: #BFDBFE; border: 1px solid #3B82F6; padding: 4px 12px; border-radius: 20px; font-weight: 800; display: inline-block; }
-    .badge-unassigned { background-color: #374151; color: #F3F4F6; border: 1px solid #6B7280; padding: 4px 12px; border-radius: 20px; font-weight: 800; display: inline-block; }
+    div.stButton > button[kind="primary"] {
+        background-color: #E30613 !important;
+        color: #FFFFFF !important;
+        border: 1px solid #B91C1C !important;
+        box-shadow: 0 4px 12px rgba(227, 6, 19, 0.3) !important;
+    }
+    div.stButton > button[kind="primary"]:hover {
+        background-color: #C4000C !important;
+    }
     </style>
 """,
     unsafe_allow_html=True,
@@ -191,6 +257,7 @@ st.markdown(
 # DATABASE INIT & SCHEMA AUTO-REPAIR
 # =========================================================
 def init_db():
+  """Ensures SQLite database schema exists with assignment and photo support."""
   conn = sqlite3.connect(DB_FILE)
   cursor = conn.cursor()
   cursor.execute("""
@@ -229,6 +296,7 @@ def init_db():
 
 
 def load_data():
+  """Loads queue data and calculates age metrics for color badges."""
   init_db()
   conn = sqlite3.connect(DB_FILE)
   try:
@@ -255,6 +323,7 @@ def load_data():
 
 
 def reset_and_seed_db():
+  """Resets database with realistic parent/child HYDAC RGA requests."""
   conn = sqlite3.connect(DB_FILE)
   cursor = conn.cursor()
   cursor.execute("DROP TABLE IF EXISTS queue")
@@ -395,6 +464,7 @@ def reset_and_seed_db():
 
 
 def update_unit_status(unit_id, new_status):
+  """Quickly updates unit status directly from card view."""
   conn = sqlite3.connect(DB_FILE)
   cursor = conn.cursor()
   cursor.execute("UPDATE queue SET status=? WHERE id=?", (new_status, unit_id))
@@ -403,6 +473,7 @@ def update_unit_status(unit_id, new_status):
 
 
 def build_unit_dropdown_options(df):
+  """Formats selection labels for edit forms."""
   options_map = {}
   if df is None or df.empty:
     return options_map
@@ -566,21 +637,21 @@ with col_header:
       """
     <div class="hydac-banner">
         <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
-            <span style="background:rgba(227,6,19,0.35); color:#FF8888; border:1px solid #E30613; padding:4px 14px; border-radius:12px; font-size:0.75rem; font-weight:800; text-transform:uppercase;">
-                <i class="fa-solid fa-microchip" style="color:#FF3344; margin-right:4px;"></i> HYDAC OS v2.6
+            <span style="background:rgba(227,6,19,0.35); color:#FFFFFF; border:1px solid #E30613; padding:4px 14px; border-radius:12px; font-size:0.75rem; font-weight:800; text-transform:uppercase;">
+                <i class="fa-solid fa-microchip" style="color:#FF8888; margin-right:4px;"></i> HYDAC OS v2.6
             </span>
             <span style="background:rgba(255,255,255,0.18); color:#FFFFFF; padding:4px 14px; border-radius:12px; font-size:0.75rem; font-weight:800;">
                 <i class="fa-solid fa-user-shield" style="color:#38BDF8; margin-right:4px;"></i> Active User: Geo Hall (Lab Lead)
             </span>
         </div>
         <div class="hydac-title">ELECTRONIC LAB OPERATIONS COMMAND OS</div>
-        <div style="font-size:0.92rem; color:#CBD5E1; font-weight:600;">HYDAC Technology Corp — Quality Control, Interactive Request Tracking & Calibration Portal</div>
+        <div style="font-size:0.92rem; color:#E2E8F0; font-weight:600;">HYDAC Technology Corp — Quality Control, Interactive Request Tracking & Calibration Portal</div>
     </div>
     """,
       unsafe_allow_html=True,
   )
 
-# Top Segmented Navigation
+# Top Segmented Control Navigation
 nav_choice = st.segmented_control(
     "SELECT WORKFLOW MODULE:",
     [
@@ -614,28 +685,28 @@ if nav_choice == "📊 Live Command OS":
     unassigned_count = (df_queue["assigned_to"] == "Unassigned").sum()
     overdue_count = (df_queue["age_weeks"] >= 8).sum()
 
-    # Gauge Progress Card
+    # Workload Gauge Progress Card
     st.markdown(
         f"""
-        <div style="background:#151C2C; border:1px solid #2D3D58; border-radius:16px; padding:20px 24px; margin-bottom:22px; box-shadow:0 8px 24px rgba(0,0,0,0.4);">
+        <div class="gauge-card">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                 <div>
-                    <span style="font-weight:900; font-size:1.15rem; color:#FFFFFF; font-family:'Montserrat', sans-serif;">
+                    <span style="font-weight:900; font-size:1.15rem; color:#0F172A; font-family:'Montserrat', sans-serif;">
                         <i class="fa-solid fa-gauge-high" style="color:#E30613; margin-right:8px;"></i> Active Queue Workload & Throughput Gauge
                     </span>
-                    <div style="font-size:0.82rem; color:#CBD5E1;">Real-time completion index and unassigned request tracking.</div>
+                    <div style="font-size:0.82rem; color:#475569;">Real-time completion index and unassigned request tracking.</div>
                 </div>
                 <div>
-                    <span class="badge-critical"><i class="fa-solid fa-fire" style="color:#FFAAAA; margin-right:4px;"></i> {overdue_count} OVERDUE REQUESTS</span>
+                    <span class="badge-critical"><i class="fa-solid fa-fire" style="color:#B91C1C; margin-right:4px;"></i> {overdue_count} OVERDUE REQUESTS</span>
                 </div>
             </div>
             <div>
-                <div style="display:flex; justify-content:space-between; font-size:0.82rem; font-weight:800; color:#FFFFFF; margin-bottom:6px;">
+                <div style="display:flex; justify-content:space-between; font-size:0.82rem; font-weight:800; color:#0F172A; margin-bottom:6px;">
                     <span>Queue Completion Rate: {completion_rate}% ({completed_units} / {total_units} Units Resolved)</span>
                     <span>Unassigned Requests: {unassigned_count} Items</span>
                 </div>
-                <div style="width:100%; height:16px; background:#0F172A; border-radius:20px; border:1px solid #334155; overflow:hidden; padding:2px;">
-                    <div style="height:100%; width:{max(completion_rate, 8)}%; background:linear-gradient(90deg, #E30613 0%, #FF4D5A 100%); border-radius:20px; box-shadow:0 0 14px rgba(227, 6, 19, 0.8);"></div>
+                <div class="gauge-bar-bg">
+                    <div class="gauge-bar-fill" style="width: {max(completion_rate, 8)}%;"></div>
                 </div>
             </div>
         </div>
@@ -643,7 +714,7 @@ if nav_choice == "📊 Live Command OS":
         unsafe_allow_html=True,
     )
 
-    # Metrics
+    # Metric Bar
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Total Line Items", len(df_queue))
     m2.metric("Unassigned Requests", unassigned_count)
@@ -654,7 +725,7 @@ if nav_choice == "📊 Live Command OS":
 
     st.markdown("---")
 
-    # Search & Filter
+    # High-Contrast Search & Filter Controls
     c_search, c_assignee = st.columns([3, 1])
     search_term = c_search.text_input(
         "SEARCH REQUESTS (RGA, NOTIFICATION, CUSTOMER, MODEL, SERIAL NUMBER):",
@@ -695,19 +766,19 @@ if nav_choice == "📊 Live Command OS":
       if max_weeks <= 4:
         age_badge = (
             f'<span class="badge-fresh"><i class="fa-solid fa-circle-check"'
-            f' style="color:#34D399; margin-right:4px;"></i> FRESH ({max_weeks}'
+            f' style="color:#15803D; margin-right:4px;"></i> FRESH ({max_weeks}'
             " Wks)</span>"
         )
       elif max_weeks <= 7:
         age_badge = (
             f'<span class="badge-warn"><i class="fa-solid fa-clock"'
-            f' style="color:#FDE047; margin-right:4px;"></i> ATTENTION'
+            f' style="color:#A16207; margin-right:4px;"></i> ATTENTION'
             f" ({max_weeks} Wks)</span>"
         )
       else:
         age_badge = (
             f'<span class="badge-critical"><i class="fa-solid'
-            ' fa-triangle-exclamation" style="color:#FFAAAA;'
+            ' fa-triangle-exclamation" style="color:#B91C1C;'
             f' margin-right:4px;"></i> OVERDUE ({max_weeks} Wks)</span>'
         )
 
@@ -715,13 +786,13 @@ if nav_choice == "📊 Live Command OS":
       if unassigned_in_group == item_count:
         assign_pill = (
             '<span class="badge-unassigned"><i class="fa-solid fa-user-slash"'
-            ' style="color:#F3F4F6; margin-right:4px;"></i> UNASSIGNED</span>'
+            ' style="color:#475569; margin-right:4px;"></i> UNASSIGNED</span>'
         )
       else:
         assignees = ", ".join(group["assigned_to"].unique())
         assign_pill = (
             f'<span class="badge-owner"><i class="fa-solid fa-user-check"'
-            f' style="color:#BFDBFE; margin-right:4px;"></i> {assignees}</span>'
+            f' style="color:#1D4ED8; margin-right:4px;"></i> {assignees}</span>'
         )
 
       expander_label = f"Parent RGA: {rga}  |  Customer: {cust_name}  |  {item_count} Child Item(s)  |  Notif: {notif_num}"
