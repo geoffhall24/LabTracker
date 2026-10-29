@@ -623,9 +623,15 @@ def reset_and_seed_db():
       ),
   ]
 
+  # EXACT MATCH: 20 target columns matched to 20 SQL ? parameters
   cursor.executemany(
       """
-        INSERT INTO queue (rga_number, notification_number, customer_name, csr_name, service_requested, model_series, serial_number, location, status, urgency, assigned_to, accessories, visual_inspection, eval_form_type, eval_data, notes, photo_path, cal_file_path, date_logged, customer_hold_date)
+        INSERT INTO queue (
+            rga_number, notification_number, customer_name, csr_name, service_requested,
+            model_series, serial_number, location, status, urgency,
+            assigned_to, accessories, visual_inspection, eval_form_type, eval_data,
+            notes, photo_path, cal_file_path, date_logged, customer_hold_date
+        )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """,
       demo_data,
@@ -881,7 +887,6 @@ if nav_choice == "🖥️ Operations Queue (TV Display)":
       item_count = len(group)
       assignees = ", ".join(group["assigned_to"].unique())
 
-      # Determine primary shelf badge for parent card header
       primary_loc = group["location"].iloc[0]
       if primary_loc == "Inbound Material":
         badge_code = "🔵 INBOUND"
@@ -896,11 +901,9 @@ if nav_choice == "🖥️ Operations Queue (TV Display)":
       else:
         badge_code = "🟢 SHIPPING READY"
 
-      # Concise expander header for high readability when collapsed
       expander_header = f"[{badge_code}]  RGA: {rga}  |  Customer: {cust_name}  |  {item_count} Item(s)  |  Owner: {assignees}"
 
       with st.expander(expander_header, expanded=False):
-        # Concise Summary Bar visible right when opened
         st.markdown(
             f"**Parent RGA:** `{rga}` &nbsp;|&nbsp; **Customer:** `{cust_name}` &nbsp;|&nbsp; "
             f"**CSR:** `{csr_name}` &nbsp;|&nbsp; **Notif #:** `{notif_num}` &nbsp;|&nbsp; "
@@ -908,7 +911,6 @@ if nav_choice == "🖥️ Operations Queue (TV Display)":
         )
         st.markdown("---")
 
-        # Itemized Child Lines Details
         st.markdown("##### ⚙️ Child Line Items & Bench Details:")
 
         for _, child in group.iterrows():
@@ -916,7 +918,6 @@ if nav_choice == "🖥️ Operations Queue (TV Display)":
 
           loc_str = child.get("location", "Ready for Evaluation")
 
-          # Color-Coded Badges for Child Lines
           if loc_str == "Inbound Material":
             badge_html = (
                 '<span class="badge-inbound"><i class="fa-solid'
@@ -963,7 +964,6 @@ if nav_choice == "🖥️ Operations Queue (TV Display)":
             st.markdown(f"Current Shelf: {badge_html}", unsafe_allow_html=True)
             st.write(f"**Status:** `{child.get('status', 'Received')}`")
 
-            # Quick Shelf Shift Dropdown
             new_shelf = st.selectbox(
                 "Shift Shelf:",
                 [
@@ -1106,10 +1106,15 @@ elif nav_choice == "📥 Phase 1: Inbound Intake":
 
           conn = sqlite3.connect(DB_FILE)
           cursor = conn.cursor()
+          # EXACT MATCH: 11 target columns matched to 11 SQL ? parameters
           cursor.execute(
               """
-                        INSERT INTO queue (rga_number, notification_number, customer_name, csr_name, service_requested, model_series, serial_number, location, status, urgency, assigned_to, accessories, visual_inspection, date_logged)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, 'Ready for Evaluation', 'Received in Lab', 5, ?, ?, ?, ?)
+                        INSERT INTO queue (
+                            rga_number, notification_number, customer_name, csr_name, service_requested,
+                            model_series, serial_number, location, status, assigned_to,
+                            accessories, visual_inspection, date_logged
+                        )
+                        VALUES (?, ?, ?, ?, ?, ?, ?, 'Ready for Evaluation', 'Received in Lab', ?, ?, ?, ?)
                     """,
               (
                   p1_rga,
@@ -1182,10 +1187,15 @@ elif nav_choice == "📥 Phase 1: Inbound Intake":
           conn = sqlite3.connect(DB_FILE)
           cursor = conn.cursor()
           for sn in sn_list:
+            # EXACT MATCH: 11 target columns matched to 11 SQL ? parameters
             cursor.execute(
                 """
-                            INSERT INTO queue (rga_number, notification_number, customer_name, csr_name, service_requested, model_series, serial_number, location, status, urgency, assigned_to, accessories, visual_inspection, date_logged)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, 'Ready for Evaluation', 'Received in Lab', 5, ?, ?, ?, ?)
+                            INSERT INTO queue (
+                                rga_number, notification_number, customer_name, csr_name, service_requested,
+                                model_series, serial_number, location, status, assigned_to,
+                                accessories, visual_inspection, date_logged
+                            )
+                            VALUES (?, ?, ?, ?, ?, ?, ?, 'Ready for Evaluation', 'Received in Lab', ?, ?, ?, ?)
                         """,
                 (
                     p1_rga,
@@ -1404,7 +1414,7 @@ elif nav_choice == "⏱️ Waiting for Customer (30-Day Tracker)":
         )
       else:
         urgency_badge = (
-            f'<span class="badge-warn"><i class="fa-solid fa-clock"></i>'
+            f'<span class="badge-waiting"><i class="fa-solid fa-clock"></i>'
             f" {days_remaining} Days Remaining</span>"
         )
 
