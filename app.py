@@ -6,7 +6,7 @@ import pandas as pd
 import streamlit as st
 
 # =========================================================
-# PAGE CONFIGURATION & LIGHT EXECUTIVE INDUSTRIAL THEME
+# PAGE CONFIGURATION & LIGHT EXECUTIVE HIGH-CONTRAST THEME
 # =========================================================
 st.set_page_config(
     page_title="HYDAC Lab Operations Command OS",
@@ -21,7 +21,7 @@ UPLOADS_DIR = r"C:\Users\Geoff.Hall\OneDrive - HYDAC Technology Corp\Desktop\Lab
 
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 
-# High-Contrast Light Theme CSS Injection
+# High-Contrast Light Theme & Input Box CSS Injection
 st.markdown(
     """
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -30,9 +30,9 @@ st.markdown(
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet">
 
     <style>
-    /* Light Slate Canvas */
+    /* Slate Canvas Background */
     .stApp {
-        background-color: #F1F5F9 !important;
+        background-color: #E2E8F0 !important;
         font-family: 'Inter', sans-serif !important;
         color: #0F172A !important;
     }
@@ -49,34 +49,67 @@ st.markdown(
         letter-spacing: -0.3px;
     }
 
-    /* Universal Text Readability */
     p, span, label, div, .stMarkdown {
         color: #0F172A !important;
     }
 
-    /* WIDGET LABELS */
-    .stWidgetLabel, label[data-testid="stWidgetLabel"], div[data-testid="stWidgetLabel"] p {
-        color: #1E293B !important;
+    /* WIDGET LABELS - BOLD BLACK */
+    label[data-testid="stWidgetLabel"], div[data-testid="stWidgetLabel"] p, .stWidgetLabel {
+        color: #0F172A !important;
         font-weight: 800 !important;
-        font-size: 0.85rem !important;
+        font-size: 0.88rem !important;
         letter-spacing: 0.5px;
         text-transform: uppercase;
         margin-bottom: 6px !important;
     }
 
+    /* TEXT INPUTS & TEXTAREAS - HIGH CONTRAST CRISP CARDS */
+    div[data-baseweb="input"] > div, div[data-baseweb="textarea"] > div {
+        background-color: #FFFFFF !important;
+        border: 2px solid #334155 !important;
+        border-radius: 8px !important;
+        box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08) !important;
+    }
+
+    div[data-baseweb="input"] input, div[data-baseweb="textarea"] textarea {
+        color: #0F172A !important;
+        font-weight: 700 !important;
+        font-size: 0.95rem !important;
+        background-color: #FFFFFF !important;
+    }
+
+    div[data-baseweb="input"] input::placeholder, div[data-baseweb="textarea"] textarea::placeholder {
+        color: #64748B !important;
+        opacity: 1 !important;
+        font-weight: 600 !important;
+    }
+
+    div[data-baseweb="input"]:focus-within > div, div[data-baseweb="textarea"]:focus-within > div {
+        border-color: #E30613 !important;
+        box-shadow: 0 0 8px rgba(227, 6, 19, 0.35) !important;
+    }
+
+    /* SELECTBOXES & DROPDOWNS */
+    div[data-baseweb="select"] > div {
+        background-color: #FFFFFF !important;
+        border: 2px solid #334155 !important;
+        border-radius: 8px !important;
+        color: #0F172A !important;
+        font-weight: 800 !important;
+    }
+
     /* SEGMENTED CONTROL / NAVIGATION TABS */
     div[data-testid="stSegmentedControl"] {
-        background-color: #E2E8F0 !important;
+        background-color: #CBD5E1 !important;
         padding: 6px !important;
         border-radius: 12px !important;
-        border: 1px solid #CBD5E1 !important;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.04) !important;
+        border: 1px solid #94A3B8 !important;
     }
 
     div[data-testid="stSegmentedControl"] button {
         background-color: #FFFFFF !important;
         color: #0F172A !important;
-        border: 1px solid #CBD5E1 !important;
+        border: 1px solid #64748B !important;
         font-weight: 800 !important;
         font-size: 0.88rem !important;
         border-radius: 8px !important;
@@ -84,7 +117,7 @@ st.markdown(
     }
 
     div[data-testid="stSegmentedControl"] button:hover {
-        background-color: #F8FAFC !important;
+        background-color: #F1F5F9 !important;
         border-color: #E30613 !important;
         color: #E30613 !important;
     }
@@ -100,17 +133,17 @@ st.markdown(
         color: #FFFFFF !important;
     }
 
-    /* EXPANDER HEADERS (PARENT RGA CARDS) */
+    /* EXPANDER CARDS */
     details[data-testid="stExpander"] {
         background-color: #FFFFFF !important;
-        border: 1px solid #CBD5E1 !important;
+        border: 1px solid #94A3B8 !important;
         border-radius: 12px !important;
         margin-bottom: 12px !important;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.04) !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
     }
 
     summary[data-testid="stExpanderSummary"] {
-        background-color: #F8FAFC !important;
+        background-color: #F1F5F9 !important;
         border-radius: 12px !important;
         padding: 14px 18px !important;
         border-left: 5px solid #E30613 !important;
@@ -120,30 +153,6 @@ st.markdown(
         color: #0F172A !important;
         font-weight: 800 !important;
         font-size: 1rem !important;
-    }
-
-    /* INPUT FIELDS, TEXTAREAS & SELECTBOXES */
-    div[data-baseweb="input"] input, div[data-baseweb="textarea"] textarea {
-        background-color: #FFFFFF !important;
-        color: #0F172A !important;
-        border: 1px solid #94A3B8 !important;
-        border-radius: 8px !important;
-        font-weight: 600 !important;
-        padding: 10px 14px !important;
-    }
-
-    input::placeholder, textarea::placeholder {
-        color: #64748B !important;
-        opacity: 1 !important;
-        font-weight: 500 !important;
-    }
-
-    div[data-baseweb="select"] > div {
-        background-color: #FFFFFF !important;
-        color: #0F172A !important;
-        border: 1px solid #94A3B8 !important;
-        border-radius: 8px !important;
-        font-weight: 700 !important;
     }
 
     /* HUD COMMAND HEADER BANNER */
@@ -170,7 +179,7 @@ st.markdown(
     /* KPI METRIC CARDS */
     div[data-testid="stMetric"] {
         background: #FFFFFF !important;
-        border: 1px solid #CBD5E1 !important;
+        border: 1px solid #94A3B8 !important;
         border-top: 4px solid #E30613 !important;
         border-radius: 12px !important;
         padding: 16px 20px !important;
@@ -183,7 +192,7 @@ st.markdown(
         font-family: 'Montserrat', sans-serif !important;
     }
     div[data-testid="stMetricLabel"] div {
-        color: #475569 !important;
+        color: #334155 !important;
         font-weight: 800 !important;
         font-size: 0.82rem !important;
         text-transform: uppercase;
@@ -192,7 +201,7 @@ st.markdown(
     /* WORKLOAD GAUGE CARD */
     .gauge-card {
         background: #FFFFFF;
-        border: 1px solid #CBD5E1;
+        border: 1px solid #94A3B8;
         border-radius: 14px;
         padding: 20px 24px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.05);
@@ -252,12 +261,86 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# =========================================================
+# SESSION STATE & AUTHENTICATION GATE
+# =========================================================
+if "authenticated" not in st.session_state:
+  st.session_state["authenticated"] = False
+if "user_name" not in st.session_state:
+  st.session_state["user_name"] = ""
+if "user_role" not in st.session_state:
+  st.session_state["user_role"] = ""
+
+VALID_USERS = {
+    "geo.hall": {
+        "password": "hydac2026",
+        "name": "Geo Hall",
+        "role": "Lab Lead",
+    },
+    "admin": {
+        "password": "admin123",
+        "name": "System Administrator",
+        "role": "Admin",
+    },
+    "tech": {"password": "tech123", "name": "Alex Rivera", "role": "Lab Tech"},
+}
+
+if not st.session_state["authenticated"]:
+  c_auth1, c_auth2, c_auth3 = st.columns([1, 2, 1])
+  with c_auth2:
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    with st.container(border=True):
+      st.markdown(
+          """
+            <div style="text-align:center; padding:10px 0;">
+                <h2 style="color:#0F172A; font-weight:900; margin-bottom:4px;">⚡ HYDAC OS LOGIN</h2>
+                <p style="color:#475569; font-size:0.9rem; font-weight:600;">Electronic Lab Operations Command Portal</p>
+            </div>
+            """,
+          unsafe_allow_html=True,
+      )
+      st.markdown("---")
+
+      user_input = st.text_input("Username:", key="auth_user")
+      pass_input = st.text_input(
+          "Password:", type="password", key="auth_pass"
+      )
+
+      b_col1, b_col2 = st.columns(2)
+      with b_col1:
+        if st.button("🔓 Sign In", type="primary", use_container_width=True):
+          u_clean = user_input.strip().lower()
+          if u_clean in VALID_USERS and VALID_USERS[u_clean][
+              "password"
+          ] == pass_input.strip():
+            st.session_state["authenticated"] = True
+            st.session_state["user_name"] = VALID_USERS[u_clean]["name"]
+            st.session_state["user_role"] = VALID_USERS[u_clean]["role"]
+            st.toast(
+                f"Welcome back, {st.session_state['user_name']}!", icon="⚡"
+            )
+            st.rerun()
+          else:
+            st.error("Invalid Username or Password.")
+
+      with b_col2:
+        if st.button("🚀 Quick Demo Login", use_container_width=True):
+          st.session_state["authenticated"] = True
+          st.session_state["user_name"] = "Geo Hall"
+          st.session_state["user_role"] = "Lab Lead"
+          st.toast("Authenticated as Geo Hall (Lab Lead)", icon="🚀")
+          st.rerun()
+
+      st.caption("Default Login Credentials:")
+      st.caption("• Geo Hall (Lead): `geo.hall` / `hydac2026`")
+      st.caption("• System Admin: `admin` / `admin123`")
+  st.stop()
+
 
 # =========================================================
 # DATABASE INIT & SCHEMA AUTO-REPAIR
 # =========================================================
 def init_db():
-  """Ensures SQLite database schema exists with assignment and photo support."""
   conn = sqlite3.connect(DB_FILE)
   cursor = conn.cursor()
   cursor.execute("""
@@ -296,7 +379,6 @@ def init_db():
 
 
 def load_data():
-  """Loads queue data and calculates age metrics for color badges."""
   init_db()
   conn = sqlite3.connect(DB_FILE)
   try:
@@ -323,7 +405,6 @@ def load_data():
 
 
 def reset_and_seed_db():
-  """Resets database with realistic parent/child HYDAC RGA requests."""
   conn = sqlite3.connect(DB_FILE)
   cursor = conn.cursor()
   cursor.execute("DROP TABLE IF EXISTS queue")
@@ -464,7 +545,6 @@ def reset_and_seed_db():
 
 
 def update_unit_status(unit_id, new_status):
-  """Quickly updates unit status directly from card view."""
   conn = sqlite3.connect(DB_FILE)
   cursor = conn.cursor()
   cursor.execute("UPDATE queue SET status=? WHERE id=?", (new_status, unit_id))
@@ -473,7 +553,6 @@ def update_unit_status(unit_id, new_status):
 
 
 def build_unit_dropdown_options(df):
-  """Formats selection labels for edit forms."""
   options_map = {}
   if df is None or df.empty:
     return options_map
@@ -513,7 +592,7 @@ def modal_claim_unit(unit_id, current_owner, model_name, serial_num):
   c1, c2 = st.columns(2)
   with c1:
     if st.button(
-        "🖐️ Self-Claim (Geo Hall)",
+        f"🖐️ Self-Claim ({st.session_state['user_name']})",
         key=f"claim_self_{unit_id}",
         type="primary",
         use_container_width=True,
@@ -521,11 +600,12 @@ def modal_claim_unit(unit_id, current_owner, model_name, serial_num):
       conn = sqlite3.connect(DB_FILE)
       cursor = conn.cursor()
       cursor.execute(
-          "UPDATE queue SET assigned_to='Geo Hall' WHERE id=?", (unit_id,)
+          "UPDATE queue SET assigned_to=? WHERE id=?",
+          (st.session_state["user_name"], unit_id),
       )
       conn.commit()
       conn.close()
-      st.toast("✅ Claimed by Geo Hall!", icon="🖐️")
+      st.toast(f"✅ Claimed by {st.session_state['user_name']}!", icon="🖐️")
       st.rerun()
 
   with c2:
@@ -611,7 +691,8 @@ def modal_append_note(unit_id, current_notes):
       cursor = conn.cursor()
       updated_notes = (
           str(current_notes or "")
-          + f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M')} - Geo Hall]: {new_note}"
+          + f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M')} -"
+          f" {st.session_state['user_name']}]: {new_note}"
       )
       cursor.execute(
           "UPDATE queue SET notes=? WHERE id=?", (updated_notes, unit_id)
@@ -625,7 +706,7 @@ def modal_append_note(unit_id, current_notes):
 # =========================================================
 # TOP NAVIGATION HEADER & BANNER
 # =========================================================
-col_logo, col_header = st.columns([1, 7])
+col_logo, col_header, col_logout = st.columns([1, 6, 1.2])
 with col_logo:
   if os.path.exists("logo.png"):
     st.image("logo.png", width=110)
@@ -634,14 +715,14 @@ with col_logo:
 
 with col_header:
   st.markdown(
-      """
+      f"""
     <div class="hydac-banner">
         <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
             <span style="background:rgba(227,6,19,0.35); color:#FFFFFF; border:1px solid #E30613; padding:4px 14px; border-radius:12px; font-size:0.75rem; font-weight:800; text-transform:uppercase;">
                 <i class="fa-solid fa-microchip" style="color:#FF8888; margin-right:4px;"></i> HYDAC OS v2.6
             </span>
             <span style="background:rgba(255,255,255,0.18); color:#FFFFFF; padding:4px 14px; border-radius:12px; font-size:0.75rem; font-weight:800;">
-                <i class="fa-solid fa-user-shield" style="color:#38BDF8; margin-right:4px;"></i> Active User: Geo Hall (Lab Lead)
+                <i class="fa-solid fa-user-shield" style="color:#38BDF8; margin-right:4px;"></i> Active User: {st.session_state['user_name']} ({st.session_state['user_role']})
             </span>
         </div>
         <div class="hydac-title">ELECTRONIC LAB OPERATIONS COMMAND OS</div>
@@ -650,6 +731,14 @@ with col_header:
     """,
       unsafe_allow_html=True,
   )
+
+with col_logout:
+  st.markdown("<br>", unsafe_allow_html=True)
+  if st.button("🔒 Sign Out", use_container_width=True):
+    st.session_state["authenticated"] = False
+    st.session_state["user_name"] = ""
+    st.session_state["user_role"] = ""
+    st.rerun()
 
 # Top Segmented Control Navigation
 nav_choice = st.segmented_control(
@@ -720,12 +809,13 @@ if nav_choice == "📊 Live Command OS":
     m2.metric("Unassigned Requests", unassigned_count)
     m3.metric("Overdue (8+ Weeks)", overdue_count)
     m4.metric(
-        "Assigned to Geo Hall", (df_queue["assigned_to"] == "Geo Hall").sum()
+        f"Assigned to {st.session_state['user_name']}",
+        (df_queue["assigned_to"] == st.session_state["user_name"]).sum(),
     )
 
     st.markdown("---")
 
-    # High-Contrast Search & Filter Controls
+    # Search & Filter Controls
     c_search, c_assignee = st.columns([3, 1])
     search_term = c_search.text_input(
         "SEARCH REQUESTS (RGA, NOTIFICATION, CUSTOMER, MODEL, SERIAL NUMBER):",
@@ -733,14 +823,22 @@ if nav_choice == "📊 Live Command OS":
     )
     assignee_filter = c_assignee.selectbox(
         "FILTER OWNERSHIP",
-        ["All Requests", "Unassigned Only", "Assigned to Me (Geo Hall)"],
+        [
+            "All Requests",
+            "Unassigned Only",
+            f"Assigned to Me ({st.session_state['user_name']})",
+        ],
     )
 
     filtered_df = df_queue.copy()
     if assignee_filter == "Unassigned Only":
       filtered_df = filtered_df[filtered_df["assigned_to"] == "Unassigned"]
-    elif assignee_filter == "Assigned to Me (Geo Hall)":
-      filtered_df = filtered_df[filtered_df["assigned_to"] == "Geo Hall"]
+    elif (
+        assignee_filter == f"Assigned to Me ({st.session_state['user_name']})"
+    ):
+      filtered_df = filtered_df[
+          filtered_df["assigned_to"] == st.session_state["user_name"]
+      ]
 
     if search_term:
       filter_mask = filtered_df.astype(str).apply(
