@@ -138,15 +138,15 @@ st.markdown(
     /* EXPANDER CARDS */
     details[data-testid="stExpander"] {
         background-color: #FFFFFF !important;
-        border: 1px solid #94A3B8 !important;
+        border: 2px solid #64748B !important;
         border-radius: 12px !important;
-        margin-bottom: 12px !important;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
+        margin-bottom: 14px !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
     }
 
     summary[data-testid="stExpanderSummary"] {
-        background-color: #F1F5F9 !important;
-        border-radius: 12px !important;
+        background-color: #F8FAFC !important;
+        border-radius: 10px !important;
         padding: 14px 18px !important;
         border-left: 6px solid #E30613 !important;
     }
@@ -181,8 +181,8 @@ st.markdown(
     /* KPI METRIC CARDS */
     div[data-testid="stMetric"] {
         background: #FFFFFF !important;
-        border: 1px solid #94A3B8 !important;
-        border-top: 4px solid #E30613 !important;
+        border: 2px solid #94A3B8 !important;
+        border-top: 5px solid #E30613 !important;
         border-radius: 12px !important;
         padding: 16px 20px !important;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
@@ -201,15 +201,15 @@ st.markdown(
     }
 
     /* SHELF LOCATION BADGES */
-    .badge-inbound { background-color: #E0F2FE; color: #0369A1; border: 1px solid #7DD3FC; padding: 4px 12px; border-radius: 20px; font-weight: 800; font-size: 0.78rem; display: inline-block; }
-    .badge-ready { background-color: #FEF9C3; color: #A16207; border: 1px solid #FDE047; padding: 4px 12px; border-radius: 20px; font-weight: 800; font-size: 0.78rem; display: inline-block; }
-    .badge-waiting { background-color: #FFEDD5; color: #C2410C; border: 1px solid #FDBA74; padding: 4px 12px; border-radius: 20px; font-weight: 800; font-size: 0.78rem; display: inline-block; }
-    .badge-flow { background-color: #F3E8FF; color: #6B21A8; border: 1px solid #D8B4FE; padding: 4px 12px; border-radius: 20px; font-weight: 800; font-size: 0.78rem; display: inline-block; }
-    .badge-calrig { background-color: #E0E7FF; color: #3730A3; border: 1px solid #A5B4FC; padding: 4px 12px; border-radius: 20px; font-weight: 800; font-size: 0.78rem; display: inline-block; }
-    .badge-completed { background-color: #DCFCE7; color: #15803D; border: 1px solid #86EFAC; padding: 4px 12px; border-radius: 20px; font-weight: 800; font-size: 0.78rem; display: inline-block; }
+    .badge-inbound { background-color: #E0F2FE; color: #0369A1; border: 1.5px solid #0284C7; padding: 4px 12px; border-radius: 20px; font-weight: 800; font-size: 0.8rem; display: inline-block; }
+    .badge-ready { background-color: #FEF9C3; color: #854D0E; border: 1.5px solid #CA8A04; padding: 4px 12px; border-radius: 20px; font-weight: 800; font-size: 0.8rem; display: inline-block; }
+    .badge-waiting { background-color: #FFEDD5; color: #C2410C; border: 1.5px solid #EA580C; padding: 4px 12px; border-radius: 20px; font-weight: 800; font-size: 0.8rem; display: inline-block; }
+    .badge-flow { background-color: #F3E8FF; color: #6B21A8; border: 1.5px solid #9333EA; padding: 4px 12px; border-radius: 20px; font-weight: 800; font-size: 0.8rem; display: inline-block; }
+    .badge-calrig { background-color: #E0E7FF; color: #3730A3; border: 1.5px solid #4F46E5; padding: 4px 12px; border-radius: 20px; font-weight: 800; font-size: 0.8rem; display: inline-block; }
+    .badge-completed { background-color: #DCFCE7; color: #15803D; border: 1.5px solid #16A34A; padding: 4px 12px; border-radius: 20px; font-weight: 800; font-size: 0.8rem; display: inline-block; }
 
-    .badge-critical { background-color: #FEE2E2; color: #B91C1C; border: 1px solid #FCA5A5; padding: 4px 12px; border-radius: 20px; font-weight: 800; font-size: 0.78rem; display: inline-block; }
-    .badge-owner { background-color: #DBEAFE; color: #1D4ED8; border: 1px solid #93C5FD; padding: 4px 12px; border-radius: 20px; font-weight: 800; font-size: 0.78rem; display: inline-block; }
+    .badge-critical { background-color: #FEE2E2; color: #B91C1C; border: 1.5px solid #DC2626; padding: 4px 12px; border-radius: 20px; font-weight: 800; font-size: 0.8rem; display: inline-block; }
+    .badge-owner { background-color: #DBEAFE; color: #1D4ED8; border: 1.5px solid #2563EB; padding: 4px 12px; border-radius: 20px; font-weight: 800; font-size: 0.8rem; display: inline-block; }
 
     /* BUTTONS */
     div.stButton > button {
@@ -310,13 +310,13 @@ if not st.session_state["authenticated"]:
           st.session_state["authenticated"] = True
           st.session_state["user_name"] = "Geo H"
           st.session_state["user_role"] = "Lab Technician"
-          st.toast("Authenticated as Geo H (Lab Tech)", icon="🚀")
+          st.toast("Authenticated as Geo H (Lab Technician)", icon="🚀")
           st.rerun()
 
       st.caption("Authorized Lab Personnel Accounts:")
-      st.caption("• Geo H (Technician): `geo.h` / `HYDAC2026`")
+      st.caption("• Geo H (Lab Technician): `geo.h` / `HYDAC2026`")
       st.caption("• Adam K (Supervisor): `adam.k` / `HYDAC2026`")
-      st.caption("• New Guy (Technician): `new.guy` / `HYDAC2026`")
+      st.caption("• New Guy (Lab Technician): `new.guy` / `HYDAC2026`")
   st.stop()
 
 
@@ -399,7 +399,6 @@ def load_data():
     df["age_days"] = (now - df["parsed_date"]).dt.days.fillna(0).astype(int)
     df["age_weeks"] = (df["age_days"] / 7).round(1)
 
-    # Calculate 30-Day Customer Response Countdown
     def calc_hold_days(row):
       if (
           row["location"] == "Waiting for Customer Response"
@@ -826,14 +825,14 @@ if nav_choice == "🖥️ Operations Queue (TV Display)":
 
     st.markdown("---")
 
-    # Search & Shelf Filter
-    c_search, c_shelf = st.columns([3, 1])
+    # Search & Filters
+    c_search, c_shelf, c_owner = st.columns([2.5, 1.2, 1.2])
     search_term = c_search.text_input(
         "🔍 SEARCH QUEUE (RGA, CUSTOMER, MODEL, S/N):",
         placeholder="Type RGA, Serial Number, or Customer Name...",
     )
     shelf_filter = c_shelf.selectbox(
-        "FILTER BY SHELF LOCATION",
+        "SHELF LOCATION",
         [
             "All Shelves",
             "Inbound Material",
@@ -844,10 +843,25 @@ if nav_choice == "🖥️ Operations Queue (TV Display)":
             "Completed / Ready for Shipping",
         ],
     )
+    owner_filter = c_owner.selectbox(
+        "OWNERSHIP",
+        [
+            "All Personnel",
+            "Unassigned Only",
+            f"Assigned to Me ({st.session_state['user_name']})",
+        ],
+    )
 
     filtered_df = df_queue.copy()
     if shelf_filter != "All Shelves":
       filtered_df = filtered_df[filtered_df["location"] == shelf_filter]
+
+    if owner_filter == "Unassigned Only":
+      filtered_df = filtered_df[filtered_df["assigned_to"] == "Unassigned"]
+    elif owner_filter == f"Assigned to Me ({st.session_state['user_name']})":
+      filtered_df = filtered_df[
+          filtered_df["assigned_to"] == st.session_state["user_name"]
+      ]
 
     if search_term:
       filter_mask = filtered_df.astype(str).apply(
@@ -855,7 +869,7 @@ if nav_choice == "🖥️ Operations Queue (TV Display)":
       ).any(axis=1)
       filtered_df = filtered_df[filter_mask]
 
-    st.markdown("### 📋 Active Requests & Shelf Overview")
+    st.markdown("### 📋 Active Request Queue (TV Dashboard View)")
 
     # Parent RGA Grouping
     parent_groups = filtered_df.groupby("rga_number")
@@ -863,18 +877,46 @@ if nav_choice == "🖥️ Operations Queue (TV Display)":
     for rga, group in parent_groups:
       cust_name = group["customer_name"].iloc[0] or "N/A"
       csr_name = group.get("csr_name", pd.Series(["N/A"])).iloc[0] or "N/A"
+      notif_num = group.get("notification_number", pd.Series(["N/A"])).iloc[0] or "N/A"
       item_count = len(group)
       assignees = ", ".join(group["assigned_to"].unique())
 
-      expander_header = f"Parent RGA: {rga}  |  Customer: {cust_name}  |  CSR: {csr_name}  |  {item_count} Child Unit(s)  |  Owner: [{assignees}]"
+      # Determine primary shelf badge for parent card header
+      primary_loc = group["location"].iloc[0]
+      if primary_loc == "Inbound Material":
+        badge_code = "🔵 INBOUND"
+      elif primary_loc == "Ready for Evaluation":
+        badge_code = "🟡 READY FOR EVAL"
+      elif primary_loc == "Waiting for Customer Response":
+        badge_code = "🟠 WAITING CUSTOMER"
+      elif primary_loc == "Flow Bench":
+        badge_code = "🟣 FLOW BENCH"
+      elif primary_loc == "CalRig":
+        badge_code = "🔵 CALRIG"
+      else:
+        badge_code = "🟢 SHIPPING READY"
 
-      with st.expander(expander_header, expanded=True):
+      # Concise expander header for high readability when collapsed
+      expander_header = f"[{badge_code}]  RGA: {rga}  |  Customer: {cust_name}  |  {item_count} Item(s)  |  Owner: {assignees}"
+
+      with st.expander(expander_header, expanded=False):
+        # Concise Summary Bar visible right when opened
+        st.markdown(
+            f"**Parent RGA:** `{rga}` &nbsp;|&nbsp; **Customer:** `{cust_name}` &nbsp;|&nbsp; "
+            f"**CSR:** `{csr_name}` &nbsp;|&nbsp; **Notif #:** `{notif_num}` &nbsp;|&nbsp; "
+            f"**Assigned Owner:** `{assignees}`"
+        )
+        st.markdown("---")
+
+        # Itemized Child Lines Details
+        st.markdown("##### ⚙️ Child Line Items & Bench Details:")
+
         for _, child in group.iterrows():
           c_info, c_location, c_actions = st.columns([2.5, 1.8, 1.7])
 
           loc_str = child.get("location", "Ready for Evaluation")
 
-          # Shelf Badges
+          # Color-Coded Badges for Child Lines
           if loc_str == "Inbound Material":
             badge_html = (
                 '<span class="badge-inbound"><i class="fa-solid'
@@ -908,12 +950,12 @@ if nav_choice == "🖥️ Operations Queue (TV Display)":
             )
 
           with c_info:
-            st.markdown(f"##### ⚙️ Unit ID #{child['id']}")
+            st.markdown(f"**Child Unit ID #{child['id']}**")
             st.write(
-                f"**Model Series:** `{child.get('model_series', 'N/A')}`\n\n"
-                f"**Serial Number:** `{child.get('serial_number', 'N/A')}`\n\n"
-                f"**Requested Service:** `{child.get('service_requested', 'Calibration')}`"
-                f" | **Owner:** `{child.get('assigned_to', 'Unassigned')}`"
+                f"• **Model Series:** `{child.get('model_series', 'N/A')}`\n\n"
+                f"• **Serial Number:** `{child.get('serial_number', 'N/A')}`\n\n"
+                f"• **Accessories:** `{child.get('accessories', 'None')}`\n\n"
+                f"• **Visual Inspection:** {child.get('visual_inspection', 'N/A')}"
             )
 
           with c_location:
@@ -921,9 +963,9 @@ if nav_choice == "🖥️ Operations Queue (TV Display)":
             st.markdown(f"Current Shelf: {badge_html}", unsafe_allow_html=True)
             st.write(f"**Status:** `{child.get('status', 'Received')}`")
 
-            # Quick Location Move Dropdown
+            # Quick Shelf Shift Dropdown
             new_shelf = st.selectbox(
-                "Move to Shelf:",
+                "Shift Shelf:",
                 [
                     "Inbound Material",
                     "Ready for Evaluation",
@@ -952,7 +994,7 @@ if nav_choice == "🖥️ Operations Queue (TV Display)":
                 key=f"shelf_move_{child['id']}",
             )
             if new_shelf != loc_str:
-              if st.button("Move Shelf", key=f"btn_move_{child['id']}"):
+              if st.button("Shift Shelf", key=f"btn_move_{child['id']}"):
                 update_location_and_status(child["id"], new_shelf)
                 st.toast(
                     f"Moved Unit #{child['id']} to {new_shelf}", icon="📍"
@@ -1038,7 +1080,6 @@ elif nav_choice == "📥 Phase 1: Inbound Intake":
           "🚀 Complete Intake & Move to Ready Shelf", type="primary"
       ):
         if p1_rga and p1_cust and p1_model and p1_sn:
-          # Build accessories list
           accessories_list = []
           if acc_case:
             accessories_list.append("Case")
@@ -1260,7 +1301,6 @@ elif nav_choice == "🔬 Phase 2: Evaluation & Testing":
       if st.form_submit_button(
           "💾 Save Evaluation & Route Unit", type="primary"
       ):
-        # Save CalRig file if uploaded
         cal_path_saved = sel_row.get("cal_file_path", "")
         if cal_file:
           cal_filename = f"Cal_{sel_id}_{cal_file.name}"
@@ -1268,7 +1308,6 @@ elif nav_choice == "🔬 Phase 2: Evaluation & Testing":
           with open(cal_path_saved, "wb") as f:
             f.write(cal_file.getbuffer())
 
-        # Determine target shelf and status
         if "Waiting Shelf" in outcome_choice:
           target_shelf = "Waiting for Customer Response"
           target_status = "Pending Customer Approval"
@@ -1279,7 +1318,6 @@ elif nav_choice == "🔬 Phase 2: Evaluation & Testing":
           target_shelf = sel_row["location"]
           target_status = "Under Testing"
 
-        # Save eval details into database
         eval_dict = {
             "diode_test": diode_test,
             "calibration_status": calibration_status,
@@ -1366,7 +1404,7 @@ elif nav_choice == "⏱️ Waiting for Customer (30-Day Tracker)":
         )
       else:
         urgency_badge = (
-            f'<span class="badge-waiting"><i class="fa-solid fa-clock"></i>'
+            f'<span class="badge-warn"><i class="fa-solid fa-clock"></i>'
             f" {days_remaining} Days Remaining</span>"
         )
 
