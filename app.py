@@ -17,11 +17,13 @@ st.set_page_config(
 )
 
 DB_FILE = "lab_queue.db"
+FORMS_DIR = r"C:\Users\Geoff.Hall\OneDrive - HYDAC Technology Corp\Desktop\LabQueueTracker\FORMS"
 LOCAL_CERTS_DIR = r"C:\Users\Geoff.Hall\OneDrive - HYDAC Technology Corp\Desktop\LabQueueTracker\Certs"
 UPLOADS_DIR = r"C:\Users\Geoff.Hall\OneDrive - HYDAC Technology Corp\Desktop\LabQueueTracker\Uploads"
 
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 os.makedirs(LOCAL_CERTS_DIR, exist_ok=True)
+os.makedirs(FORMS_DIR, exist_ok=True)
 
 # CSS for Ultra-High Contrast & Legibility
 st.markdown(
@@ -182,6 +184,19 @@ st.markdown(
         display: inline-block !important;
     }
 
+    /* ICON INDICATOR BADGES */
+    .indicator-badge {
+        background-color: #E2E8F0;
+        color: #0F172A;
+        font-weight: 800;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-size: 0.82rem;
+        margin-right: 6px;
+        display: inline-block;
+        border: 1px solid #94A3B8;
+    }
+
     /* HIGH CONTRAST BUTTON FIX FOR SHOP FLOOR READABILITY */
     div.stButton > button {
         background-color: #1E293B !important;
@@ -298,6 +313,7 @@ def init_db():
             photo_path TEXT,
             cal_file_path TEXT,
             date_logged TEXT,
+            last_phase_change TEXT,
             customer_hold_date TEXT
         )
     """)
@@ -325,6 +341,7 @@ def init_db():
         "photo_path": "TEXT",
         "cal_file_path": "TEXT",
         "date_logged": "TEXT",
+        "last_phase_change": "TEXT",
         "customer_hold_date": "TEXT",
     }
 
@@ -371,6 +388,33 @@ def load_data():
 
         df["timeframe_status"] = df.apply(calc_status, axis=1)
 
+        def calc_flags(row):
+            photos = row.get("photo_path")
+            has_photos = False
+            if photos and photos != "[]" and photos != "None":
+                try:
+                    p_list = json.loads(photos)
+                    has_photos = len(p_list) > 0
+                except Exception:
+                    has_photos = True
+
+            notes_str = str(row.get("notes") or "")
+            has_notes = len(notes_str.strip()) > 0 and notes_str != "None"
+            has_outlook = "OUTLOOK SYNC" in notes_str or "✉️" in notes_str
+
+            last_change = row.get("last_phase_change")
+            recent_phase = False
+            if last_change and last_change != "None":
+                try:
+                    c_date = datetime.strptime(str(last_change)[:10], "%Y-%m-%d")
+                    recent_phase = (now - c_date).days <= 2
+                except Exception:
+                    recent_phase = False
+
+            return pd.Series([has_photos, has_notes, has_outlook, recent_phase])
+
+        df[["has_photos", "has_notes", "has_outlook", "recent_phase"]] = df.apply(calc_flags, axis=1)
+
         def calc_hold_days(row):
             if row["location"] == "Waiting for Customer Response" and row.get("customer_hold_date") and str(row["customer_hold_date"]).strip() != "":
                 try:
@@ -395,18 +439,26 @@ def assign_parent_rga_cascade(rga_number, new_assignee):
 def update_location_and_status(unit_id, new_location, new_status=None):
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
-    today_str = datetime.now().strftime("%Y-%m-%d")
+    today_str = datetime.now().strftime("%Y-%m-%d %H:%M")
 
     if new_location == "Waiting for Customer Response":
-        cursor.execute("UPDATE queue SET location=?, customer_hold_date=? WHERE id=?", (new_location, today_str, unit_id))
+        cursor.execute("UPDATE queue SET location=?, customer_hold_date=?, last_phase_change=? WHERE id=?", (new_location, today_str[:10], today_str, unit_id))
     else:
-        cursor.execute("UPDATE queue SET location=? WHERE id=?", (new_location, unit_id))
+        cursor.execute("UPDATE queue SET location=?, last_phase_change=? WHERE id=?", (new_location, today_str, unit_id))
 
     if new_status:
         cursor.execute("UPDATE queue SET status=? WHERE id=?", (new_status, unit_id))
 
     conn.commit()
     conn.close()
+
+def get_pdf_form_list():
+    """Reads PDF files from FORMS_DIR."""
+    if os.path.exists(FORMS_DIR):
+        files = [f for f in os.listdir(FORMS_DIR) if f.lower().endswith(".pdf")]
+        if files:
+            return sorted(files)
+    return ["F-0100_Contamination_Sensors.pdf", "F-0101_Fluid_Conditioning_Units.pdf", "F-0102_AquaSensors.pdf", "F-0103_General_Bench.pdf"]
 
 def reset_and_seed_db():
     conn = sqlite3.connect(DB_FILE)
@@ -434,6 +486,7 @@ def reset_and_seed_db():
             photo_path TEXT,
             cal_file_path TEXT,
             date_logged TEXT,
+            last_phase_change TEXT,
             customer_hold_date TEXT
         )
     """)
@@ -442,13 +495,14 @@ def reset_and_seed_db():
     d_fresh = (today - timedelta(days=6)).strftime("%Y-%m-%d")
     d_warn = (today - timedelta(days=32)).strftime("%Y-%m-%d")
     d_late = (today - timedelta(days=62)).strftime("%Y-%m-%d")
+    ts_fresh = datetime.now().strftime("%Y-%m-%d %H:%M")
 
     demo_data = [
-        ("60083000", "20007503", "Caterpillar Inc.", "Sarah Jenkins", "Calibration", "CS 1000 Contamination Sensor", "000SS01831K0000001", "CalRig", "Under Calibration", 9, "Geo H", "Case, Power Adapter, Comm Cable", "Clean exterior, optical ports clear", "F-0100", "{\"diode\":\"Pass\",\"alignment\":\"In Spec\"}", "[2026-10-24 - Geo H]: Diode bench synced. Calibration underway.", "[]", "", d_fresh, ""),
-        ("60083000", "20007503", "Caterpillar Inc.", "Sarah Jenkins", "Calibration", "CS 1000 Contamination Sensor", "000SS01831K0000002", "CalRig", "Under Calibration", 9, "Geo H", "Case, Power Adapter", "Diode port inspected", "F-0100", "{\"diode\":\"Pass\",\"alignment\":\"In Spec\"}", "[2026-10-24 - Geo H]: Zero offset verified.", "[]", "", d_fresh, ""),
-        ("60083105", "20007510", "John Deere Corp.", "Mike Ross", "Repair", "FAM-10 Fluid Conditioning Unit", "FAM10-998231-A", "Waiting for Customer Response", "Pending Customer Approval", 6, "Adam K", "Inlet Hose, Outlet Hose, Manual", "Vacuum pump seal oil leakage noticed", "F-0101", "{\"pump\":\"Fail\"}", "[2026-10-02 - Adam K]: Quote sent to CSR Mike Ross for customer approval.\n\n[✉️ OUTLOOK SYNC - 2026-10-15 by Adam K]: Customer requested revised quote breakdown.", "[]", "", d_warn, d_warn),
-        ("60082990", "20007480", "Komatsu Ltd.", "Rachel Zane", "Calibration", "FCU 1310 Portable Filtration", "FCU1310-88412-A", "Flow Bench", "Overdue - Urgent", 10, "New Guy", "Suction Hose, Power Adapter", "Heavy hydraulic oil accumulation inside casing", "F-0101", "{}", "[2026-08-28 - New Guy]: Unit delayed > 8 weeks awaiting bench adapter.\n\n[✉️ OUTLOOK SYNC - 2026-09-10 by Rachel Zane]: Customer inquired on delivery date.", "[]", "", d_late, ""),
-        ("60083145", "20007548", "Parker Hannifin", "Sarah Jenkins", "Calibration", "AS 1000 AquaSensor", "AS1000-77621-C", "Inbound Material", "Dropped Off", 5, "Unassigned", "Case, Comm Cable", "Original field return packaging intact", "F-0102", "{}", "[2026-10-28 - Geo H]: Package received at shipping dock shelf.", "[]", "", d_fresh, ""),
+        ("60083000", "20007503", "Caterpillar Inc.", "Sarah Jenkins", "Calibration", "CS 1000 Contamination Sensor", "000SS01831K0000001", "CalRig", "Under Calibration", 9, "Geo H", "Case, Power Adapter, Comm Cable", "Clean exterior, optical ports clear", "F-0100_Contamination_Sensors.pdf", "{\"diode\":\"Pass\",\"alignment\":\"In Spec\"}", "[2026-10-24 - Geo H]: Diode bench synced. Calibration underway.", "[]", "", d_fresh, ts_fresh, ""),
+        ("60083000", "20007503", "Caterpillar Inc.", "Sarah Jenkins", "Calibration", "CS 1000 Contamination Sensor", "000SS01831K0000002", "CalRig", "Under Calibration", 9, "Geo H", "Case, Power Adapter", "Diode port inspected", "F-0100_Contamination_Sensors.pdf", "{\"diode\":\"Pass\",\"alignment\":\"In Spec\"}", "[2026-10-24 - Geo H]: Zero offset verified.", "[]", "", d_fresh, ts_fresh, ""),
+        ("60083105", "20007510", "John Deere Corp.", "Mike Ross", "Repair", "FAM-10 Fluid Conditioning Unit", "FAM10-998231-A", "Waiting for Customer Response", "Pending Customer Approval", 6, "Adam K", "Inlet Hose, Outlet Hose, Manual", "Vacuum pump seal oil leakage noticed", "F-0101_Fluid_Conditioning_Units.pdf", "{\"pump\":\"Fail\"}", "[2026-10-02 - Adam K]: Quote sent to CSR Mike Ross for customer approval.\n\n[✉️ OUTLOOK SYNC - 2026-10-15 by Adam K]: Customer requested revised quote breakdown.", "[]", "", d_warn, ts_fresh, d_warn),
+        ("60082990", "20007480", "Komatsu Ltd.", "Rachel Zane", "Calibration", "FCU 1310 Portable Filtration", "FCU1310-88412-A", "Flow Bench", "Overdue - Urgent", 10, "New Guy", "Suction Hose, Power Adapter", "Heavy hydraulic oil accumulation inside casing", "F-0101_Fluid_Conditioning_Units.pdf", "{}", "[2026-08-28 - New Guy]: Unit delayed > 8 weeks awaiting bench adapter.\n\n[✉️ OUTLOOK SYNC - 2026-09-10 by Rachel Zane]: Customer inquired on delivery date.", "[]", "", d_late, ts_fresh, ""),
+        ("60083145", "20007548", "Parker Hannifin", "Sarah Jenkins", "Calibration", "AS 1000 AquaSensor", "AS1000-77621-C", "Inbound Material", "Dropped Off", 5, "Unassigned", "Case, Comm Cable", "Original field return packaging intact", "F-0102_AquaSensors.pdf", "{}", "[2026-10-28 - Geo H]: Package received at shipping dock shelf.", "[]", "", d_fresh, ts_fresh, ""),
     ]
 
     cursor.executemany("""
@@ -456,9 +510,9 @@ def reset_and_seed_db():
             rga_number, notification_number, customer_name, csr_name, service_requested,
             model_series, serial_number, location, status, urgency,
             assigned_to, accessories, visual_inspection, eval_form_type, eval_data,
-            notes, photo_path, cal_file_path, date_logged, customer_hold_date
+            notes, photo_path, cal_file_path, date_logged, last_phase_change, customer_hold_date
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, demo_data)
 
     conn.commit()
@@ -604,7 +658,7 @@ if nav == "🖥️ Operations Queue":
     with col_center:
         st.markdown(
             """
-            <div style="background-color:#FFFFFF; border-left:8px solid #E30613; border:2px solid #CBD5E1; padding:18px 24px; border-radius:12px; margin-bottom:20px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+            <div style="background-color:#FFFFFF; border-left:8px solid #E30613; border:2px solid #CBD5E1; padding:18px 24px; border-radius:12px; margin-bottom:20px;">
                 <div style="font-size:1.6rem; font-weight:900; color:#0F172A; text-transform:uppercase;">OPERATIONS QUEUE & LAB COMMAND</div>
                 <div style="font-size:0.9rem; color:#475569; font-weight:600;">HYDAC Technology Corp — Live Physical Shelf Queue & Order Tracking</div>
             </div>
@@ -646,16 +700,24 @@ if nav == "🖥️ Operations Queue":
 
             for rga, group in filtered.groupby("rga_number"):
                 cust = group["customer_name"].iloc[0]
-                csr = group.get("csr_name", pd.Series(["N/A"])).iloc[0] or "N/A"
-                notif_num = group.get("notification_number", pd.Series(["N/A"])).iloc[0] or "N/A"
                 owner = ", ".join(group["assigned_to"].unique())
-                exp_header = f"RGA #{rga} — {cust} ({len(group)} Item/s) | Owner: {owner}"
+
+                rga_has_photos = group["has_photos"].any()
+                rga_has_notes = group["has_notes"].any()
+                rga_has_outlook = group["has_outlook"].any()
+                rga_recent_phase = group["recent_phase"].any()
+
+                icon_str = ""
+                if rga_has_photos: icon_str += " 📷"
+                if rga_has_notes: icon_str += " 💬"
+                if rga_has_outlook: icon_str += " ✉️"
+                if rga_recent_phase: icon_str += " 🔄"
+
+                exp_header = f"RGA #{rga} — {cust} ({len(group)} Item/s) {icon_str} | Owner: {owner}"
 
                 with st.expander(exp_header, expanded=False):
                     st.markdown(
-                        f"**Parent RGA:** `{rga}` &nbsp;|&nbsp; **Customer:** `{cust}` &nbsp;|&nbsp; "
-                        f"**CSR:** `{csr}` &nbsp;|&nbsp; **Notif #:** `{notif_num}` &nbsp;|&nbsp; "
-                        f"**Assigned Owner:** `{owner}`"
+                        f"**Parent RGA:** `{rga}` &nbsp;|&nbsp; **Customer:** `{cust}` &nbsp;|&nbsp; **Assigned Owner:** `{owner}`"
                     )
                     st.markdown("---")
 
@@ -665,15 +727,21 @@ if nav == "🖥️ Operations Queue":
 
                         status = item["timeframe_status"]
                         if status == "GREEN":
-                            pill = '<span class="pill-green">🟢 On Schedule (&lt; 4 wks)</span>'
+                            pill = '<span class="pill-green">🟢 On Schedule</span>'
                         elif status == "YELLOW":
-                            pill = '<span class="pill-yellow">🟡 Approaching SLA (4-7 wks)</span>'
+                            pill = '<span class="pill-yellow">🟡 Approaching SLA</span>'
                         else:
-                            pill = '<span class="pill-red">🔴 Late / Overdue (&gt; 8 wks)</span>'
+                            pill = '<span class="pill-red">🔴 Late / Overdue</span>'
+
+                        item_icons = ""
+                        if item["has_photos"]: item_icons += '<span class="indicator-badge">📷 Photos</span>'
+                        if item["has_notes"]: item_icons += '<span class="indicator-badge">💬 Notes</span>'
+                        if item["has_outlook"]: item_icons += '<span class="indicator-badge">✉️ Outlook</span>'
+                        if item["recent_phase"]: item_icons += '<span class="indicator-badge">🔄 Shifted</span>'
 
                         with col_info:
-                            st.markdown(f"**Unit ID #{item['id']}** &nbsp;&nbsp; {pill}", unsafe_allow_html=True)
-                            st.markdown(f"• **Model Series:** `{item.get('model_series') or 'None'}`")
+                            st.markdown(f"**Unit ID #{item['id']}** &nbsp;&nbsp; {pill} &nbsp;&nbsp; {item_icons}", unsafe_allow_html=True)
+                            st.markdown(f"• **Part Number / Model:** `{item.get('model_series') or 'None'}`")
                             st.markdown(f"• **Serial Number:** `{item.get('serial_number') or 'None'}`")
                             st.markdown(f"• **Accessories:** `{item.get('accessories') or 'None'}`")
                             st.markdown(f"• **Notes Log:** {str(item.get('notes', 'None'))}")
@@ -708,11 +776,11 @@ if nav == "🖥️ Operations Queue":
                         st.markdown('</div>', unsafe_allow_html=True)
 
 # =========================================================
-# MODULE 2: PHASE 1 INBOUND INTAKE (FIXED BATCH LOADING)
+# MODULE 2: PHASE 1 INBOUND INTAKE (DYNAMIC MIXED BATCH ENTRY)
 # =========================================================
 elif nav == "📥 Phase 1: Inbound Intake":
     st.subheader("📥 Phase 1: Inbound Material Intake")
-    intake_type = st.radio("Intake Type:", ["Single Unit Intake", "Batch Intake (Multiple Units under same RGA)"], horizontal=True)
+    intake_type = st.radio("Intake Mode:", ["Single Unit Entry", "Multi-Item Mixed Batch Entry (Different Part Numbers & Serials)"], horizontal=True)
 
     with st.form("phase1_form"):
         c1, c2, c3 = st.columns(3)
@@ -724,7 +792,7 @@ elif nav == "📥 Phase 1: Inbound Intake":
         csr = c4.text_input("CSR Name:")
         service = c5.selectbox("Service Requested:", ["Calibration", "Repair", "Warranty Evaluation"])
 
-        st.markdown("##### Accessories Checklist")
+        st.markdown("##### Received Accessories Checklist")
         acc_cols = st.columns(5)
         a_case = acc_cols[0].checkbox("Case")
         a_inlet = acc_cols[1].checkbox("Inlet Hose")
@@ -739,33 +807,23 @@ elif nav == "📥 Phase 1: Inbound Intake":
         a_paper = acc_cols2[3].checkbox("Paper Roll")
         a_ribbon = acc_cols2[4].checkbox("Ink Ribbon")
 
-        if intake_type == "Single Unit Intake":
+        if intake_type == "Single Unit Entry":
             ca, cb = st.columns(2)
-            model = ca.text_input("Model Series*:")
+            model = ca.text_input("Part Number / Model Series*:")
             sn = cb.text_input("Serial Number*:")
             vis = st.text_area("Visual Inspection Notes:")
             tech = st.selectbox("Assign Tech:", ["Unassigned", "Geo H", "Adam K", "New Guy"])
 
             if st.form_submit_button("🚀 Submit Single Intake", type="primary"):
                 if rga and cust and model and sn:
-                    accs = []
-                    if a_case: accs.append("Case")
-                    if a_inlet: accs.append("Inlet Hose")
-                    if a_outlet: accs.append("Outlet Hose")
-                    if a_suction: accs.append("Suction Hose")
-                    if a_comm: accs.append("Comm Cable")
-                    if a_power: accs.append("Power Adapter")
-                    if a_manual: accs.append("Manual")
-                    if a_cd: accs.append("CD/Floppy")
-                    if a_paper: accs.append("Paper Roll")
-                    if a_ribbon: accs.append("Ink Ribbon")
+                    accs = [label for check, label in [(a_case, "Case"), (a_inlet, "Inlet Hose"), (a_outlet, "Outlet Hose"), (a_suction, "Suction Hose"), (a_comm, "Comm Cable"), (a_power, "Power Adapter"), (a_manual, "Manual"), (a_cd, "CD/Floppy"), (a_paper, "Paper Roll"), (a_ribbon, "Ink Ribbon")] if check]
 
                     conn = sqlite3.connect(DB_FILE)
                     cursor = conn.cursor()
                     cursor.execute("""
-                        INSERT INTO queue (rga_number, notification_number, customer_name, csr_name, service_requested, model_series, serial_number, location, status, assigned_to, accessories, visual_inspection, date_logged)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, 'Ready for Evaluation', 'Received in Lab', ?, ?, ?, ?)
-                    """, (rga, notif, cust, csr, service, model, sn, tech, ", ".join(accs) if accs else "None", vis, datetime.now().strftime("%Y-%m-%d")))
+                        INSERT INTO queue (rga_number, notification_number, customer_name, csr_name, service_requested, model_series, serial_number, location, status, assigned_to, accessories, visual_inspection, date_logged, last_phase_change)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, 'Ready for Evaluation', 'Received in Lab', ?, ?, ?, ?, ?)
+                    """, (rga, notif, cust, csr, service, model, sn, tech, ", ".join(accs) if accs else "None", vis, datetime.now().strftime("%Y-%m-%d"), datetime.now().strftime("%Y-%m-%d %H:%M")))
                     conn.commit()
                     conn.close()
                     st.toast("Unit intake logged!", icon="🚀")
@@ -773,46 +831,57 @@ elif nav == "📥 Phase 1: Inbound Intake":
                 else:
                     st.error("Please fill in RGA, Customer, Model, and Serial Number.")
 
-        else:  # BATCH INTAKE
-            model = st.text_input("Model Series*:")
-            batch_sns = st.text_area("Serial Numbers* (Paste one per line):", placeholder="000SS01831K0000001\n000SS01831K0000002\n000SS01831K0000003")
+        else:
+            st.markdown("##### 📦 Multi-Item Batch Grid (Enter mixed Part Numbers & Serials)")
+            st.caption("Edit the table below to enter different Part Numbers and Serial Numbers under this single RGA:")
+
+            initial_batch_df = pd.DataFrame([
+                {"Part_Number": "CS 1000 Contamination Sensor", "Serial_Number": ""},
+                {"Part_Number": "FAM-10 Fluid Conditioning Unit", "Serial_Number": ""},
+                {"Part_Number": "AS 1000 AquaSensor", "Serial_Number": ""},
+            ])
+
+            batch_grid = st.data_editor(
+                initial_batch_df,
+                num_rows="dynamic",
+                use_container_width=True,
+                column_config={
+                    "Part_Number": st.column_config.TextColumn("Part Number / Model Series", required=True),
+                    "Serial_Number": st.column_config.TextColumn("Serial Number", required=True),
+                },
+                key="batch_grid_editor"
+            )
+
             vis = st.text_area("Visual Inspection Notes:")
             tech = st.selectbox("Assign Tech:", ["Unassigned", "Geo H", "Adam K", "New Guy"])
 
-            if st.form_submit_button("🚀 Process Batch Intake", type="primary"):
-                sn_list = [s.strip() for s in batch_sns.split("\n") if s.strip()]
-                if rga and cust and model and sn_list:
-                    accs = []
-                    if a_case: accs.append("Case")
-                    if a_inlet: accs.append("Inlet Hose")
-                    if a_outlet: accs.append("Outlet Hose")
-                    if a_suction: accs.append("Suction Hose")
-                    if a_comm: accs.append("Comm Cable")
-                    if a_power: accs.append("Power Adapter")
-                    if a_manual: accs.append("Manual")
-                    if a_cd: accs.append("CD/Floppy")
-                    if a_paper: accs.append("Paper Roll")
-                    if a_ribbon: accs.append("Ink Ribbon")
+            if st.form_submit_button("🚀 Submit Multi-Item Batch Intake", type="primary"):
+                valid_items = batch_grid.dropna(subset=["Part_Number", "Serial_Number"])
+                valid_items = valid_items[(valid_items["Part_Number"].str.strip() != "") & (valid_items["Serial_Number"].str.strip() != "")]
 
+                if rga and cust and not valid_items.empty:
+                    accs = [label for check, label in [(a_case, "Case"), (a_inlet, "Inlet Hose"), (a_outlet, "Outlet Hose"), (a_suction, "Suction Hose"), (a_comm, "Comm Cable"), (a_power, "Power Adapter"), (a_manual, "Manual"), (a_cd, "CD/Floppy"), (a_paper, "Paper Roll"), (a_ribbon, "Ink Ribbon")] if check]
                     today_str = datetime.now().strftime("%Y-%m-%d")
+                    ts_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+
                     conn = sqlite3.connect(DB_FILE)
                     cursor = conn.cursor()
 
-                    for sn_item in sn_list:
+                    for _, row in valid_items.iterrows():
                         cursor.execute("""
-                            INSERT INTO queue (rga_number, notification_number, customer_name, csr_name, service_requested, model_series, serial_number, location, status, assigned_to, accessories, visual_inspection, date_logged)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, 'Ready for Evaluation', 'Received in Lab', ?, ?, ?, ?)
-                        """, (rga, notif, cust, csr, service, model, sn_item, tech, ", ".join(accs) if accs else "None", vis, today_str))
+                            INSERT INTO queue (rga_number, notification_number, customer_name, csr_name, service_requested, model_series, serial_number, location, status, assigned_to, accessories, visual_inspection, date_logged, last_phase_change)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, 'Ready for Evaluation', 'Received in Lab', ?, ?, ?, ?, ?)
+                        """, (rga, notif, cust, csr, service, row["Part_Number"].strip(), row["Serial_Number"].strip(), tech, ", ".join(accs) if accs else "None", vis, today_str, ts_str))
 
                     conn.commit()
                     conn.close()
-                    st.toast(f"Logged {len(sn_list)} batch units under RGA {rga}!", icon="📦")
+                    st.toast(f"Logged {len(valid_items)} mixed batch items under RGA {rga}!", icon="📦")
                     st.rerun()
                 else:
-                    st.error("Please fill in RGA, Customer, Model, and enter at least one Serial Number.")
+                    st.error("Please provide RGA, Customer Name, and at least one row with Part Number and Serial Number.")
 
 # =========================================================
-# MODULE 3: PHASE 2 EVALUATION & TESTING
+# MODULE 3: PHASE 2 EVALUATION & TESTING (PDF INTEGRATED)
 # =========================================================
 elif nav == "🔬 Phase 2: Evaluation & Testing":
     st.subheader("🔬 Phase 2: Bench Evaluation & Protocol Sheet")
@@ -824,16 +893,41 @@ elif nav == "🔬 Phase 2: Evaluation & Testing":
         sel_id = options[sel_label]
         sel_row = df[df["id"] == sel_id].iloc[0]
 
-        st.markdown(f"**Evaluating Unit #{sel_id}** — RGA: `{sel_row['rga_number']}` | SN: `{sel_row['serial_number']}`")
+        st.markdown(f"**Evaluating Unit #{sel_id}** — RGA: `{sel_row['rga_number']}` | Part: `{sel_row['model_series']}` | SN: `{sel_row['serial_number']}`")
 
-        form_template = st.selectbox("Select Protocol Form:", ["F-0100: Contamination Sensors", "F-0101: Fluid Conditioning Units", "F-0102: AquaSensors", "F-0103: General Electronic Bench"])
-        
+        pdf_forms = get_pdf_form_list()
+        selected_pdf = st.selectbox("📁 Select Evaluation Form Template (Loaded from FORMS directory):", pdf_forms)
+
+        st.info(f"Loaded PDF Form Schema: `{selected_pdf}`")
+
         with st.form("eval_sheet_form"):
-            c1, c2 = st.columns(2)
-            diode = c1.selectbox("Laser Diode Check:", ["Pass", "Fail", "N/A"])
-            align = c2.selectbox("Calibration Alignment:", ["In Spec", "Out of Spec", "Hardware Defect"])
-            notes = st.text_area("Diagnostic Findings / Notes:", value=sel_row.get("notes", ""))
-            
+            st.markdown(f"#### Protocol Questions for `{selected_pdf}`")
+
+            if "F-0100" in selected_pdf or "Contamination" in selected_pdf:
+                c1, c2 = st.columns(2)
+                diode = c1.selectbox("Laser Diode Alignment Check:", ["Pass", "Fail", "N/A"])
+                optics = c2.selectbox("Cell Optics Cleanliness:", ["Pass", "Requires Cleaning", "Fail"])
+                p_channel = st.text_input("4um / 6um / 14um Channel Baseline Check:", value="Clean - In Spec")
+
+            elif "F-0101" in selected_pdf or "Conditioning" in selected_pdf:
+                c1, c2 = st.columns(2)
+                vacuum = c1.selectbox("Vacuum Pump Seal Leak Check:", ["Pass", "Fail - Leaking", "N/A"])
+                flow_rate = c2.text_input("Measured Flow Rate (L/min):", value="1.5 L/min")
+                p_channel = st.text_input("Dehydration Efficiency Test:", value="Optimal")
+
+            elif "F-0102" in selected_pdf or "Aqua" in selected_pdf:
+                c1, c2 = st.columns(2)
+                sat = c1.selectbox("Water Saturation Sensor Calibration:", ["Pass", "Out of Spec", "N/A"])
+                temp = c2.text_input("Temperature Sensor Accuracy (°C):", value="25.0 °C")
+                p_channel = st.text_input("Capacitive Element Voltage:", value="1.2V DC")
+
+            else:
+                c1, c2 = st.columns(2)
+                diode = c1.selectbox("General Voltage Alignment:", ["Pass", "Fail"])
+                optics = c2.selectbox("Housing Seal Check:", ["Pass", "Fail"])
+                p_channel = st.text_input("General Bench Inspection Notes:", value="Passed standard check")
+
+            notes = st.text_area("Diagnostic Findings / Tech Notes Log:", value=sel_row.get("notes", ""))
             target_shelf = st.radio("Route Shelf:", ["Keep on Bench", "Move to Customer Hold", "Complete & Ready for Shipping"])
 
             if st.form_submit_button("💾 Save Evaluation Protocol", type="primary"):
@@ -841,8 +935,8 @@ elif nav == "🔬 Phase 2: Evaluation & Testing":
                 conn = sqlite3.connect(DB_FILE)
                 cursor = conn.cursor()
                 cursor.execute("""
-                    UPDATE queue SET eval_form_type=?, notes=?, location=? WHERE id=?
-                """, (form_template, notes, route_loc, sel_id))
+                    UPDATE queue SET eval_form_type=?, notes=?, location=?, last_phase_change=? WHERE id=?
+                """, (selected_pdf, notes, route_loc, datetime.now().strftime("%Y-%m-%d %H:%M"), sel_id))
                 conn.commit()
                 conn.close()
                 st.toast("Saved evaluation!", icon="🔬")
