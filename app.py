@@ -7,7 +7,7 @@ import pandas as pd
 import streamlit as st
 
 # =========================================================
-# PAGE CONFIGURATION & FLOATING LIGHT THEME STYLING
+# PAGE CONFIGURATION & HIGH-CONTRAST LIGHT THEME
 # =========================================================
 st.set_page_config(
     page_title="HYDAC Electronic Lab Portal",
@@ -23,19 +23,19 @@ UPLOADS_DIR = r"C:\Users\Geoff.Hall\OneDrive - HYDAC Technology Corp\Desktop\Lab
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 os.makedirs(LOCAL_CERTS_DIR, exist_ok=True)
 
-# High-Contrast Light Executive CSS
+# CSS for Ultra-High Contrast & Legibility
 st.markdown(
     """
     <style>
-    /* Light Canvas Base */
+    /* Clean Light Base */
     .stApp {
-        background-color: #F1F5F9 !important;
+        background-color: #F8FAFC !important;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
         color: #0F172A !important;
     }
 
     .main .block-container {
-        padding-top: 1.5rem;
+        padding-top: 1.2rem;
         padding-bottom: 3rem;
         max-width: 96%;
     }
@@ -50,32 +50,22 @@ st.markdown(
         color: #F8FAFC !important;
     }
 
-    section[data-testid="stSidebar"] .stRadio label {
-        background-color: #1E293B !important;
-        padding: 10px 14px !important;
-        border-radius: 8px !important;
-        margin-bottom: 6px !important;
-        border: 1px solid #334155 !important;
-        font-weight: 700 !important;
-        font-size: 0.92rem !important;
-    }
-
-    /* HEADERS & TYPOGRAPHY */
-    h1, h2, h3, h4, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
+    /* CODE BLOCKS & MONOSPACE READABILITY FIX */
+    code, .stMarkdown code {
+        background-color: #FFFFFF !important;
         color: #0F172A !important;
         font-weight: 800 !important;
-        letter-spacing: -0.3px !important;
+        border: 1px solid #CBD5E1 !important;
+        padding: 2px 6px !important;
+        border-radius: 4px !important;
+        font-size: 0.95rem !important;
     }
 
-    p, span, label, div {
-        color: #1E293B !important;
-    }
-
-    /* FORM & FILTER WIDGET LABELS */
+    /* WIDGET LABELS */
     label[data-testid="stWidgetLabel"] p, .stWidgetLabel p {
         color: #0284C7 !important;
         font-weight: 800 !important;
-        font-size: 0.82rem !important;
+        font-size: 0.85rem !important;
         letter-spacing: 0.5px !important;
         text-transform: uppercase !important;
     }
@@ -83,14 +73,14 @@ st.markdown(
     /* INPUT FIELDS & DROPDOWNS */
     div[data-baseweb="input"] > div, div[data-baseweb="textarea"] > div, div[data-baseweb="select"] > div {
         background-color: #FFFFFF !important;
-        border: 2px solid #94A3B8 !important;
+        border: 2px solid #64748B !important;
         border-radius: 8px !important;
         color: #0F172A !important;
     }
 
     div[data-baseweb="input"] input, div[data-baseweb="textarea"] textarea {
         color: #0F172A !important;
-        font-weight: 600 !important;
+        font-weight: 700 !important;
         font-size: 0.98rem !important;
     }
 
@@ -123,12 +113,12 @@ st.markdown(
         border: 2px solid #CBD5E1 !important;
         border-radius: 12px !important;
         margin-bottom: 18px !important;
-        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06) !important;
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05) !important;
         overflow: hidden !important;
     }
 
     summary[data-testid="stExpanderSummary"] {
-        background-color: #F8FAFC !important;
+        background-color: #F1F5F9 !important;
         border-left: 8px solid #E30613 !important;
         padding: 16px 22px !important;
     }
@@ -142,9 +132,9 @@ st.markdown(
     /* LINE ITEM FLOATING CARDS */
     .child-card {
         background-color: #FFFFFF !important;
-        border: 1.5px solid #E2E8F0 !important;
+        border: 2px solid #CBD5E1 !important;
         border-radius: 10px !important;
-        padding: 18px !important;
+        padding: 20px !important;
         margin-bottom: 14px !important;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
     }
@@ -162,44 +152,50 @@ st.markdown(
     .pill-green {
         background-color: #DCFCE7 !important;
         color: #15803D !important;
-        border: 1.5px solid #16A34A !important;
-        padding: 5px 14px !important;
+        border: 2px solid #16A34A !important;
+        padding: 6px 14px !important;
         border-radius: 20px !important;
         font-weight: 800 !important;
-        font-size: 0.82rem !important;
+        font-size: 0.85rem !important;
         display: inline-block !important;
     }
 
     .pill-yellow {
         background-color: #FEF9C3 !important;
         color: #A16207 !important;
-        border: 1.5px solid #CA8A04 !important;
-        padding: 5px 14px !important;
+        border: 2px solid #CA8A04 !important;
+        padding: 6px 14px !important;
         border-radius: 20px !important;
         font-weight: 800 !important;
-        font-size: 0.82rem !important;
+        font-size: 0.85rem !important;
         display: inline-block !important;
     }
 
     .pill-red {
         background-color: #FEE2E2 !important;
         color: #B91C1C !important;
-        border: 1.5px solid #DC2626 !important;
-        padding: 5px 14px !important;
+        border: 2px solid #DC2626 !important;
+        padding: 6px 14px !important;
         border-radius: 20px !important;
         font-weight: 800 !important;
-        font-size: 0.82rem !important;
+        font-size: 0.85rem !important;
         display: inline-block !important;
     }
 
-    /* BUTTONS */
+    /* HIGH CONTRAST BUTTON FIX FOR SHOP FLOOR READABILITY */
     div.stButton > button {
-        background-color: #0F172A !important;
+        background-color: #1E293B !important;
         color: #FFFFFF !important;
         border: 1px solid #0F172A !important;
-        font-weight: 700 !important;
+        font-weight: 800 !important;
+        font-size: 0.95rem !important;
         border-radius: 8px !important;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.1) !important;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.15) !important;
+    }
+
+    div.stButton > button:hover {
+        background-color: #334155 !important;
+        color: #FFFFFF !important;
     }
 
     div.stButton > button[kind="primary"] {
@@ -275,7 +271,7 @@ if not st.session_state["authenticated"]:
     st.stop()
 
 # =========================================================
-# DATABASE MIGRATIONS & PIPELINE
+# DATABASE INITIALIZATION & MIGRATION PIPELINE
 # =========================================================
 def init_db():
     conn = sqlite3.connect(DB_FILE)
@@ -413,7 +409,6 @@ def update_location_and_status(unit_id, new_location, new_status=None):
     conn.close()
 
 def reset_and_seed_db():
-    """REBUILT SEEDER: Populates a comprehensive set of demo records utilizing all new schema fields."""
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     cursor.execute("DROP TABLE IF EXISTS queue")
@@ -449,25 +444,11 @@ def reset_and_seed_db():
     d_late = (today - timedelta(days=62)).strftime("%Y-%m-%d")
 
     demo_data = [
-        # Parent RGA 60083000 (Caterpillar - Fresh)
         ("60083000", "20007503", "Caterpillar Inc.", "Sarah Jenkins", "Calibration", "CS 1000 Contamination Sensor", "000SS01831K0000001", "CalRig", "Under Calibration", 9, "Geo H", "Case, Power Adapter, Comm Cable", "Clean exterior, optical ports clear", "F-0100", "{\"diode\":\"Pass\",\"alignment\":\"In Spec\"}", "[2026-10-24 - Geo H]: Diode bench synced. Calibration underway.", "[]", "", d_fresh, ""),
         ("60083000", "20007503", "Caterpillar Inc.", "Sarah Jenkins", "Calibration", "CS 1000 Contamination Sensor", "000SS01831K0000002", "CalRig", "Under Calibration", 9, "Geo H", "Case, Power Adapter", "Diode port inspected", "F-0100", "{\"diode\":\"Pass\",\"alignment\":\"In Spec\"}", "[2026-10-24 - Geo H]: Zero offset verified.", "[]", "", d_fresh, ""),
-        ("60083000", "20007503", "Caterpillar Inc.", "Sarah Jenkins", "Repair", "CS 1000 Contamination Sensor", "000SS01831K0000003", "Ready for Evaluation", "Received in Lab", 9, "Geo H", "Case", "Minor housing scuffing", "F-0100", "{}", "[2026-10-25 - Sarah Jenkins]: Customer requests fast turnaround.", "[]", "", d_fresh, ""),
-        
-        # Parent RGA 60083105 (John Deere - Approaching SLA)
         ("60083105", "20007510", "John Deere Corp.", "Mike Ross", "Repair", "FAM-10 Fluid Conditioning Unit", "FAM10-998231-A", "Waiting for Customer Response", "Pending Customer Approval", 6, "Adam K", "Inlet Hose, Outlet Hose, Manual", "Vacuum pump seal oil leakage noticed", "F-0101", "{\"pump\":\"Fail\"}", "[2026-10-02 - Adam K]: Quote sent to CSR Mike Ross for customer approval.\n\n[✉️ OUTLOOK SYNC - 2026-10-15 by Adam K]: Customer requested revised quote breakdown.", "[]", "", d_warn, d_warn),
-        
-        # Parent RGA 60082990 (Komatsu - Late)
         ("60082990", "20007480", "Komatsu Ltd.", "Rachel Zane", "Calibration", "FCU 1310 Portable Filtration", "FCU1310-88412-A", "Flow Bench", "Overdue - Urgent", 10, "New Guy", "Suction Hose, Power Adapter", "Heavy hydraulic oil accumulation inside casing", "F-0101", "{}", "[2026-08-28 - New Guy]: Unit delayed > 8 weeks awaiting bench adapter.\n\n[✉️ OUTLOOK SYNC - 2026-09-10 by Rachel Zane]: Customer inquired on delivery date.", "[]", "", d_late, ""),
-        
-        # Parent RGA 60083145 (Parker Hannifin - Inbound)
         ("60083145", "20007548", "Parker Hannifin", "Sarah Jenkins", "Calibration", "AS 1000 AquaSensor", "AS1000-77621-C", "Inbound Material", "Dropped Off", 5, "Unassigned", "Case, Comm Cable", "Original field return packaging intact", "F-0102", "{}", "[2026-10-28 - Geo H]: Package received at shipping dock shelf.", "[]", "", d_fresh, ""),
-        
-        # Parent RGA 60083200 (Volvo CE - Ready Shelf)
-        ("60083200", "20007601", "Volvo Construction Equip.", "Mike Ross", "Warranty Evaluation", "AS 3000 AquaSensor", "AS3000-99120-B", "Ready for Evaluation", "Received in Lab", 7, "Unassigned", "Case, Manual", "Intact seal, moisture error reported", "F-0102", "{}", "[2026-10-22 - Mike Ross]: Warranty evaluation log opened.", "[]", "", d_fresh, ""),
-        
-        # Parent RGA 60083222 (Liebherr - Shipping Ready)
-        ("60083222", "20007630", "Liebherr Mining", "Rachel Zane", "Calibration", "CS 2000 Contamination Sensor", "000SS02100K0000088", "Completed / Ready for Shipping", "Calibrated & Completed", 4, "Geo H", "Case, Power Adapter, Comm Cable", "Fully cleaned and re-sealed", "F-0100", "{\"diode\":\"Pass\",\"alignment\":\"In Spec\"}", "[2026-10-26 - Geo H]: Final calibration certificate generated. Ready for shipping dock.", "[]", "", d_fresh, ""),
     ]
 
     cursor.executemany("""
@@ -502,7 +483,7 @@ def build_unit_dropdown_options(df):
     return options_map
 
 # =========================================================
-# MODAL DIALOG OVERLAYS
+# INTERACTIVE MODAL OVERLAYS
 # =========================================================
 @st.dialog("📷 Inspection Photo Hub")
 def modal_photos(unit_id, photo_json):
@@ -588,7 +569,7 @@ def modal_claim(rga_number, unit_id, current_owner):
             st.rerun()
 
 # =========================================================
-# LEFT-PANE SIDEBAR NAVIGATION & ROUTING
+# SIDEBAR NAVIGATION
 # =========================================================
 df = load_data()
 
@@ -615,16 +596,15 @@ with st.sidebar:
         st.rerun()
 
 # =========================================================
-# MODULE 1: OPERATIONS QUEUE (FLOATING CENTER LAYOUT)
+# MODULE 1: OPERATIONS QUEUE
 # =========================================================
 if nav == "🖥️ Operations Queue":
-    # Floating Center Container Columns [1, 10, 1]
-    col_pad_left, col_center, col_pad_right = st.columns([0.2, 10, 0.2])
+    col_pad_left, col_center, col_pad_right = st.columns([0.1, 10, 0.1])
 
     with col_center:
         st.markdown(
             """
-            <div style="background-color:#FFFFFF; border-left:8px solid #E30613; border:2px solid #E2E8F0; padding:18px 24px; border-radius:12px; margin-bottom:20px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+            <div style="background-color:#FFFFFF; border-left:8px solid #E30613; border:2px solid #CBD5E1; padding:18px 24px; border-radius:12px; margin-bottom:20px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
                 <div style="font-size:1.6rem; font-weight:900; color:#0F172A; text-transform:uppercase;">OPERATIONS QUEUE & LAB COMMAND</div>
                 <div style="font-size:0.9rem; color:#475569; font-weight:600;">HYDAC Technology Corp — Live Physical Shelf Queue & Order Tracking</div>
             </div>
@@ -728,7 +708,7 @@ if nav == "🖥️ Operations Queue":
                         st.markdown('</div>', unsafe_allow_html=True)
 
 # =========================================================
-# MODULE 2: PHASE 1 INBOUND INTAKE
+# MODULE 2: PHASE 1 INBOUND INTAKE (FIXED BATCH LOADING)
 # =========================================================
 elif nav == "📥 Phase 1: Inbound Intake":
     st.subheader("📥 Phase 1: Inbound Material Intake")
@@ -752,6 +732,13 @@ elif nav == "📥 Phase 1: Inbound Intake":
         a_suction = acc_cols[3].checkbox("Suction Hose")
         a_comm = acc_cols[4].checkbox("Comm Cable")
 
+        acc_cols2 = st.columns(5)
+        a_power = acc_cols2[0].checkbox("Power Adapter")
+        a_manual = acc_cols2[1].checkbox("Manual")
+        a_cd = acc_cols2[2].checkbox("CD/Floppy")
+        a_paper = acc_cols2[3].checkbox("Paper Roll")
+        a_ribbon = acc_cols2[4].checkbox("Ink Ribbon")
+
         if intake_type == "Single Unit Intake":
             ca, cb = st.columns(2)
             model = ca.text_input("Model Series*:")
@@ -759,24 +746,70 @@ elif nav == "📥 Phase 1: Inbound Intake":
             vis = st.text_area("Visual Inspection Notes:")
             tech = st.selectbox("Assign Tech:", ["Unassigned", "Geo H", "Adam K", "New Guy"])
 
-            if st.form_submit_button("🚀 Submit Intake", type="primary"):
-                accs = []
-                if a_case: accs.append("Case")
-                if a_inlet: accs.append("Inlet Hose")
-                if a_outlet: accs.append("Outlet Hose")
-                if a_suction: accs.append("Suction Hose")
-                if a_comm: accs.append("Comm Cable")
+            if st.form_submit_button("🚀 Submit Single Intake", type="primary"):
+                if rga and cust and model and sn:
+                    accs = []
+                    if a_case: accs.append("Case")
+                    if a_inlet: accs.append("Inlet Hose")
+                    if a_outlet: accs.append("Outlet Hose")
+                    if a_suction: accs.append("Suction Hose")
+                    if a_comm: accs.append("Comm Cable")
+                    if a_power: accs.append("Power Adapter")
+                    if a_manual: accs.append("Manual")
+                    if a_cd: accs.append("CD/Floppy")
+                    if a_paper: accs.append("Paper Roll")
+                    if a_ribbon: accs.append("Ink Ribbon")
 
-                conn = sqlite3.connect(DB_FILE)
-                cursor = conn.cursor()
-                cursor.execute("""
-                    INSERT INTO queue (rga_number, notification_number, customer_name, csr_name, service_requested, model_series, serial_number, location, status, assigned_to, accessories, visual_inspection, date_logged)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, 'Ready for Evaluation', 'Received in Lab', ?, ?, ?, ?)
-                """, (rga, notif, cust, csr, service, model, sn, tech, ", ".join(accs), vis, datetime.now().strftime("%Y-%m-%d")))
-                conn.commit()
-                conn.close()
-                st.toast("Intake logged!", icon="🚀")
-                st.rerun()
+                    conn = sqlite3.connect(DB_FILE)
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                        INSERT INTO queue (rga_number, notification_number, customer_name, csr_name, service_requested, model_series, serial_number, location, status, assigned_to, accessories, visual_inspection, date_logged)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, 'Ready for Evaluation', 'Received in Lab', ?, ?, ?, ?)
+                    """, (rga, notif, cust, csr, service, model, sn, tech, ", ".join(accs) if accs else "None", vis, datetime.now().strftime("%Y-%m-%d")))
+                    conn.commit()
+                    conn.close()
+                    st.toast("Unit intake logged!", icon="🚀")
+                    st.rerun()
+                else:
+                    st.error("Please fill in RGA, Customer, Model, and Serial Number.")
+
+        else:  # BATCH INTAKE
+            model = st.text_input("Model Series*:")
+            batch_sns = st.text_area("Serial Numbers* (Paste one per line):", placeholder="000SS01831K0000001\n000SS01831K0000002\n000SS01831K0000003")
+            vis = st.text_area("Visual Inspection Notes:")
+            tech = st.selectbox("Assign Tech:", ["Unassigned", "Geo H", "Adam K", "New Guy"])
+
+            if st.form_submit_button("🚀 Process Batch Intake", type="primary"):
+                sn_list = [s.strip() for s in batch_sns.split("\n") if s.strip()]
+                if rga and cust and model and sn_list:
+                    accs = []
+                    if a_case: accs.append("Case")
+                    if a_inlet: accs.append("Inlet Hose")
+                    if a_outlet: accs.append("Outlet Hose")
+                    if a_suction: accs.append("Suction Hose")
+                    if a_comm: accs.append("Comm Cable")
+                    if a_power: accs.append("Power Adapter")
+                    if a_manual: accs.append("Manual")
+                    if a_cd: accs.append("CD/Floppy")
+                    if a_paper: accs.append("Paper Roll")
+                    if a_ribbon: accs.append("Ink Ribbon")
+
+                    today_str = datetime.now().strftime("%Y-%m-%d")
+                    conn = sqlite3.connect(DB_FILE)
+                    cursor = conn.cursor()
+
+                    for sn_item in sn_list:
+                        cursor.execute("""
+                            INSERT INTO queue (rga_number, notification_number, customer_name, csr_name, service_requested, model_series, serial_number, location, status, assigned_to, accessories, visual_inspection, date_logged)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, 'Ready for Evaluation', 'Received in Lab', ?, ?, ?, ?)
+                        """, (rga, notif, cust, csr, service, model, sn_item, tech, ", ".join(accs) if accs else "None", vis, today_str))
+
+                    conn.commit()
+                    conn.close()
+                    st.toast(f"Logged {len(sn_list)} batch units under RGA {rga}!", icon="📦")
+                    st.rerun()
+                else:
+                    st.error("Please fill in RGA, Customer, Model, and enter at least one Serial Number.")
 
 # =========================================================
 # MODULE 3: PHASE 2 EVALUATION & TESTING
