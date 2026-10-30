@@ -7,13 +7,13 @@ import pandas as pd
 import streamlit as st
 
 # =========================================================
-# PAGE CONFIGURATION & TV-OPTIMIZED HIGH CONTRAST THEME
+# PAGE CONFIGURATION & FLOATING LIGHT THEME STYLING
 # =========================================================
 st.set_page_config(
     page_title="HYDAC Electronic Lab Portal",
     page_icon="⚡",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
 )
 
 DB_FILE = "lab_queue.db"
@@ -23,92 +23,114 @@ UPLOADS_DIR = r"C:\Users\Geoff.Hall\OneDrive - HYDAC Technology Corp\Desktop\Lab
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 os.makedirs(LOCAL_CERTS_DIR, exist_ok=True)
 
-# CSS for TV Display Readability
+# High-Contrast Light Executive CSS
 st.markdown(
     """
     <style>
-    /* Executive Slate Base Canvas */
+    /* Light Canvas Base */
     .stApp {
-        background-color: #0F172A !important;
+        background-color: #F1F5F9 !important;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
-        color: #F8FAFC !important;
+        color: #0F172A !important;
     }
 
     .main .block-container {
-        padding-top: 1.2rem;
-        padding-bottom: 2.5rem;
-        max-width: 98%;
+        padding-top: 1.5rem;
+        padding-bottom: 3rem;
+        max-width: 96%;
     }
 
-    h1, h2, h3, h4, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
+    /* LEFT SIDEBAR STYLING */
+    section[data-testid="stSidebar"] {
+        background-color: #0F172A !important;
+        border-right: 2px solid #1E293B !important;
+    }
+
+    section[data-testid="stSidebar"] * {
         color: #F8FAFC !important;
+    }
+
+    section[data-testid="stSidebar"] .stRadio label {
+        background-color: #1E293B !important;
+        padding: 10px 14px !important;
+        border-radius: 8px !important;
+        margin-bottom: 6px !important;
+        border: 1px solid #334155 !important;
+        font-weight: 700 !important;
+        font-size: 0.92rem !important;
+    }
+
+    /* HEADERS & TYPOGRAPHY */
+    h1, h2, h3, h4, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
+        color: #0F172A !important;
         font-weight: 800 !important;
         letter-spacing: -0.3px !important;
     }
 
     p, span, label, div {
-        color: #E2E8F0 !important;
+        color: #1E293B !important;
     }
 
     /* FORM & FILTER WIDGET LABELS */
     label[data-testid="stWidgetLabel"] p, .stWidgetLabel p {
-        color: #38BDF8 !important;
+        color: #0284C7 !important;
         font-weight: 800 !important;
-        font-size: 0.85rem !important;
-        letter-spacing: 0.6px !important;
+        font-size: 0.82rem !important;
+        letter-spacing: 0.5px !important;
         text-transform: uppercase !important;
     }
 
-    /* FILTER INPUTS & DROPDOWNS */
+    /* INPUT FIELDS & DROPDOWNS */
     div[data-baseweb="input"] > div, div[data-baseweb="textarea"] > div, div[data-baseweb="select"] > div {
-        background-color: #1E293B !important;
-        border: 2px solid #475569 !important;
+        background-color: #FFFFFF !important;
+        border: 2px solid #94A3B8 !important;
         border-radius: 8px !important;
-        color: #FFFFFF !important;
+        color: #0F172A !important;
     }
 
     div[data-baseweb="input"] input, div[data-baseweb="textarea"] textarea {
-        color: #FFFFFF !important;
+        color: #0F172A !important;
         font-weight: 600 !important;
-        font-size: 1rem !important;
+        font-size: 0.98rem !important;
     }
 
     /* KPI METRIC CARDS */
     div[data-testid="stMetric"] {
-        background: linear-gradient(135deg, #1E293B 0%, #334155 100%) !important;
-        border: 2px solid #475569 !important;
+        background-color: #FFFFFF !important;
+        border: 2px solid #CBD5E1 !important;
         border-top: 4px solid #E30613 !important;
         border-radius: 12px !important;
         padding: 16px 20px !important;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05) !important;
     }
 
     div[data-testid="stMetricValue"] div {
-        color: #FFFFFF !important;
+        color: #0F172A !important;
         font-size: 2.3rem !important;
         font-weight: 900 !important;
     }
 
     div[data-testid="stMetricLabel"] div {
-        color: #94A3B8 !important;
+        color: #475569 !important;
         font-size: 0.8rem !important;
         font-weight: 800 !important;
         text-transform: uppercase !important;
     }
 
-    /* HIGH-CONTRAST EXPANDER CARDS (PARENT RGA) */
+    /* FLOATING EXPANDER CARDS (PARENT RGA) */
     details[data-testid="stExpander"] {
-        background-color: #1E293B !important;
-        border: 2px solid #475569 !important;
+        background-color: #FFFFFF !important;
+        border: 2px solid #CBD5E1 !important;
         border-radius: 12px !important;
-        margin-bottom: 16px !important;
+        margin-bottom: 18px !important;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06) !important;
         overflow: hidden !important;
     }
 
     summary[data-testid="stExpanderSummary"] {
-        background-color: #F1F5F9 !important;
+        background-color: #F8FAFC !important;
         border-left: 8px solid #E30613 !important;
-        padding: 16px 20px !important;
+        padding: 16px 22px !important;
     }
 
     summary[data-testid="stExpanderSummary"] p, summary[data-testid="stExpanderSummary"] span {
@@ -117,14 +139,14 @@ st.markdown(
         font-weight: 900 !important;
     }
 
-    /* LINE ITEM CARDS (HIGH READABILITY WHITE CANVAS) */
+    /* LINE ITEM FLOATING CARDS */
     .child-card {
         background-color: #FFFFFF !important;
-        border: 2px solid #CBD5E1 !important;
+        border: 1.5px solid #E2E8F0 !important;
         border-radius: 10px !important;
         padding: 18px !important;
         margin-bottom: 14px !important;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15) !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
     }
 
     .child-card p, .child-card span, .child-card div, .child-card label {
@@ -136,34 +158,37 @@ st.markdown(
         font-weight: 800 !important;
     }
 
-    /* STATUS PILLS FOR TV DISPLAY */
+    /* STATUS BADGES */
     .pill-green {
-        background-color: #16A34A !important;
-        color: #FFFFFF !important;
-        padding: 6px 14px !important;
+        background-color: #DCFCE7 !important;
+        color: #15803D !important;
+        border: 1.5px solid #16A34A !important;
+        padding: 5px 14px !important;
         border-radius: 20px !important;
         font-weight: 800 !important;
-        font-size: 0.85rem !important;
+        font-size: 0.82rem !important;
         display: inline-block !important;
     }
 
     .pill-yellow {
-        background-color: #CA8A04 !important;
-        color: #FFFFFF !important;
-        padding: 6px 14px !important;
+        background-color: #FEF9C3 !important;
+        color: #A16207 !important;
+        border: 1.5px solid #CA8A04 !important;
+        padding: 5px 14px !important;
         border-radius: 20px !important;
         font-weight: 800 !important;
-        font-size: 0.85rem !important;
+        font-size: 0.82rem !important;
         display: inline-block !important;
     }
 
     .pill-red {
-        background-color: #DC2626 !important;
-        color: #FFFFFF !important;
-        padding: 6px 14px !important;
+        background-color: #FEE2E2 !important;
+        color: #B91C1C !important;
+        border: 1.5px solid #DC2626 !important;
+        padding: 5px 14px !important;
         border-radius: 20px !important;
         font-weight: 800 !important;
-        font-size: 0.85rem !important;
+        font-size: 0.82rem !important;
         display: inline-block !important;
     }
 
@@ -171,10 +196,10 @@ st.markdown(
     div.stButton > button {
         background-color: #0F172A !important;
         color: #FFFFFF !important;
-        border: 1px solid #1E293B !important;
+        border: 1px solid #0F172A !important;
         font-weight: 700 !important;
         border-radius: 8px !important;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.2) !important;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1) !important;
     }
 
     div.stButton > button[kind="primary"] {
@@ -211,8 +236,8 @@ if not st.session_state["authenticated"]:
             st.markdown(
                 """
                 <div style="text-align:center; padding:10px 0;">
-                    <h2 style="color:#F8FAFC; font-weight:900; margin-bottom:4px;">⚡ ELECTRONIC LAB PORTAL</h2>
-                    <p style="color:#94A3B8; font-size:0.9rem; font-weight:600;">HYDAC Technology Corp Operations System</p>
+                    <h2 style="color:#0F172A; font-weight:900; margin-bottom:4px;">⚡ ELECTRONIC LAB PORTAL</h2>
+                    <p style="color:#475569; font-size:0.9rem; font-weight:600;">HYDAC Technology Corp Operations System</p>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -388,6 +413,7 @@ def update_location_and_status(unit_id, new_location, new_status=None):
     conn.close()
 
 def reset_and_seed_db():
+    """REBUILT SEEDER: Populates a comprehensive set of demo records utilizing all new schema fields."""
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     cursor.execute("DROP TABLE IF EXISTS queue")
@@ -418,15 +444,30 @@ def reset_and_seed_db():
     """)
 
     today = datetime.now()
-    date_fresh = (today - timedelta(days=7)).strftime("%Y-%m-%d")
-    date_warn = (today - timedelta(days=35)).strftime("%Y-%m-%d")
-    date_late = (today - timedelta(days=65)).strftime("%Y-%m-%d")
+    d_fresh = (today - timedelta(days=6)).strftime("%Y-%m-%d")
+    d_warn = (today - timedelta(days=32)).strftime("%Y-%m-%d")
+    d_late = (today - timedelta(days=62)).strftime("%Y-%m-%d")
 
     demo_data = [
-        ("60083000", "20007503", "Global Hydraulics", "Sarah Jenkins", "Calibration", "CS 1000 Contamination Sensor", "000SS01831K0000001", "Ready for Evaluation", "Received in Lab", 9, "Geo Hall", "Case, Power Adapter", "Clean exterior", "F-0100", "{}", "Demo item 1 record note.", "[]", "", date_fresh, ""),
-        ("60083000", "20007503", "Global Hydraulics", "Sarah Jenkins", "Calibration", "CS 1000 Contamination Sensor", "000SS01831K0000002", "Ready for Evaluation", "Received in Lab", 9, "Geo Hall", "Case", "Visual check complete", "F-0100", "{}", "Demo item 2 record note.", "[]", "", date_fresh, ""),
-        ("60083105", "20007510", "John Deere Corp.", "Mike Ross", "Repair", "FAM-10 Fluid Conditioning Unit", "FAM10-998231-A", "Waiting for Customer Response", "Pending Customer Approval", 6, "Adam K", "Inlet Hose, Outlet Hose", "Vacuum pump seal leak", "F-0101", "{}", "Quote sent to customer.", "[]", "", date_warn, date_warn),
-        ("60082990", "20007480", "Komatsu Ltd.", "Rachel Zane", "Calibration", "FCU 1310 Portable Filtration", "FCU1310-88412-A", "Flow Bench", "Overdue - Urgent", 10, "New Guy", "Suction Hose", "Heavy oil accumulation", "F-0101", "{}", "Unit delayed over 8 weeks.", "[]", "", date_late, ""),
+        # Parent RGA 60083000 (Caterpillar - Fresh)
+        ("60083000", "20007503", "Caterpillar Inc.", "Sarah Jenkins", "Calibration", "CS 1000 Contamination Sensor", "000SS01831K0000001", "CalRig", "Under Calibration", 9, "Geo H", "Case, Power Adapter, Comm Cable", "Clean exterior, optical ports clear", "F-0100", "{\"diode\":\"Pass\",\"alignment\":\"In Spec\"}", "[2026-10-24 - Geo H]: Diode bench synced. Calibration underway.", "[]", "", d_fresh, ""),
+        ("60083000", "20007503", "Caterpillar Inc.", "Sarah Jenkins", "Calibration", "CS 1000 Contamination Sensor", "000SS01831K0000002", "CalRig", "Under Calibration", 9, "Geo H", "Case, Power Adapter", "Diode port inspected", "F-0100", "{\"diode\":\"Pass\",\"alignment\":\"In Spec\"}", "[2026-10-24 - Geo H]: Zero offset verified.", "[]", "", d_fresh, ""),
+        ("60083000", "20007503", "Caterpillar Inc.", "Sarah Jenkins", "Repair", "CS 1000 Contamination Sensor", "000SS01831K0000003", "Ready for Evaluation", "Received in Lab", 9, "Geo H", "Case", "Minor housing scuffing", "F-0100", "{}", "[2026-10-25 - Sarah Jenkins]: Customer requests fast turnaround.", "[]", "", d_fresh, ""),
+        
+        # Parent RGA 60083105 (John Deere - Approaching SLA)
+        ("60083105", "20007510", "John Deere Corp.", "Mike Ross", "Repair", "FAM-10 Fluid Conditioning Unit", "FAM10-998231-A", "Waiting for Customer Response", "Pending Customer Approval", 6, "Adam K", "Inlet Hose, Outlet Hose, Manual", "Vacuum pump seal oil leakage noticed", "F-0101", "{\"pump\":\"Fail\"}", "[2026-10-02 - Adam K]: Quote sent to CSR Mike Ross for customer approval.\n\n[✉️ OUTLOOK SYNC - 2026-10-15 by Adam K]: Customer requested revised quote breakdown.", "[]", "", d_warn, d_warn),
+        
+        # Parent RGA 60082990 (Komatsu - Late)
+        ("60082990", "20007480", "Komatsu Ltd.", "Rachel Zane", "Calibration", "FCU 1310 Portable Filtration", "FCU1310-88412-A", "Flow Bench", "Overdue - Urgent", 10, "New Guy", "Suction Hose, Power Adapter", "Heavy hydraulic oil accumulation inside casing", "F-0101", "{}", "[2026-08-28 - New Guy]: Unit delayed > 8 weeks awaiting bench adapter.\n\n[✉️ OUTLOOK SYNC - 2026-09-10 by Rachel Zane]: Customer inquired on delivery date.", "[]", "", d_late, ""),
+        
+        # Parent RGA 60083145 (Parker Hannifin - Inbound)
+        ("60083145", "20007548", "Parker Hannifin", "Sarah Jenkins", "Calibration", "AS 1000 AquaSensor", "AS1000-77621-C", "Inbound Material", "Dropped Off", 5, "Unassigned", "Case, Comm Cable", "Original field return packaging intact", "F-0102", "{}", "[2026-10-28 - Geo H]: Package received at shipping dock shelf.", "[]", "", d_fresh, ""),
+        
+        # Parent RGA 60083200 (Volvo CE - Ready Shelf)
+        ("60083200", "20007601", "Volvo Construction Equip.", "Mike Ross", "Warranty Evaluation", "AS 3000 AquaSensor", "AS3000-99120-B", "Ready for Evaluation", "Received in Lab", 7, "Unassigned", "Case, Manual", "Intact seal, moisture error reported", "F-0102", "{}", "[2026-10-22 - Mike Ross]: Warranty evaluation log opened.", "[]", "", d_fresh, ""),
+        
+        # Parent RGA 60083222 (Liebherr - Shipping Ready)
+        ("60083222", "20007630", "Liebherr Mining", "Rachel Zane", "Calibration", "CS 2000 Contamination Sensor", "000SS02100K0000088", "Completed / Ready for Shipping", "Calibrated & Completed", 4, "Geo H", "Case, Power Adapter, Comm Cable", "Fully cleaned and re-sealed", "F-0100", "{\"diode\":\"Pass\",\"alignment\":\"In Spec\"}", "[2026-10-26 - Geo H]: Final calibration certificate generated. Ready for shipping dock.", "[]", "", d_fresh, ""),
     ]
 
     cursor.executemany("""
@@ -501,7 +542,7 @@ def modal_photos(unit_id, photo_json):
 @st.dialog("💬 Diagnostic Notes & Outlook Sync")
 def modal_notes(unit_id, current_notes):
     st.markdown(f"### Unit #{unit_id} Diagnostic History")
-    st.text_area("Log History:", value=current_notes or "No existing notes.", height=150, disabled=True)
+    st.text_area("Log History:", value=current_notes or "No existing notes.", height=160, disabled=True)
 
     t1, t2 = st.tabs(["💬 Add Lab Note", "✉️ Sync Outlook Email"])
     with t1:
@@ -541,134 +582,150 @@ def modal_claim(rga_number, unit_id, current_owner):
             assign_parent_rga_cascade(rga_number, st.session_state["user_name"])
             st.rerun()
     with c2:
-        target = st.selectbox("Reassign To:", ["Unassigned", "Geo Hall", "Adam K", "New Guy"])
+        target = st.selectbox("Reassign To:", ["Unassigned", "Geo H", "Adam K", "New Guy"])
         if st.button("Reassign All", use_container_width=True):
             assign_parent_rga_cascade(rga_number, target)
             st.rerun()
 
 # =========================================================
-# MAIN DASHBOARD NAVIGATION
+# LEFT-PANE SIDEBAR NAVIGATION & ROUTING
 # =========================================================
 df = load_data()
 
-col_logo, col_header, col_logout = st.columns([1, 6, 1.2])
-with col_header:
-    st.markdown(
-        f"""
-        <div style="background-color:#1E293B; border-left:8px solid #E30613; padding:18px 24px; border-radius:10px; margin-bottom:18px;">
-            <div style="font-size:1.7rem; font-weight:900; color:#F8FAFC; text-transform:uppercase;">HYDAC ELECTRONIC LAB PORTAL</div>
-            <div style="font-size:0.9rem; color:#94A3B8; font-weight:600;">Active User: {st.session_state['user_name']} ({st.session_state['user_role']}) &nbsp;|&nbsp; Operations Command & Shelf Tracking</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+with st.sidebar:
+    st.markdown("## ⚡ HYDAC PORTAL")
+    st.caption(f"Logged in: **{st.session_state['user_name']}**\nRole: {st.session_state['user_role']}")
+    st.divider()
+
+    nav = st.radio(
+        "WORKFLOW MODULES:",
+        [
+            "🖥️ Operations Queue",
+            "📥 Phase 1: Inbound Intake",
+            "🔬 Phase 2: Evaluation & Testing",
+            "⏱️ Customer Hold Tracker",
+            "🛠️ System Admin & Tools",
+        ],
+        index=0,
     )
 
-with col_logout:
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.divider()
     if st.button("🔒 Sign Out", use_container_width=True):
         st.session_state["authenticated"] = False
         st.rerun()
 
-nav = st.segmented_control(
-    "SELECT WORKFLOW MODULE:",
-    [
-        "🖥️ Operations Queue (TV Display)",
-        "📥 Phase 1: Inbound Intake",
-        "🔬 Phase 2: Evaluation & Testing",
-        "⏱️ Customer Hold Tracker",
-        "🛠️ System Admin & Tools",
-    ],
-    default="🖥️ Operations Queue (TV Display)",
-)
-
 # =========================================================
-# MODULE 1: OPERATIONS QUEUE
+# MODULE 1: OPERATIONS QUEUE (FLOATING CENTER LAYOUT)
 # =========================================================
-if nav == "🖥️ Operations Queue (TV Display)":
-    if df.empty:
-        st.info("Database empty. Use System Admin to populate demo data.")
-    else:
-        m1, m2, m3, m4 = st.columns(4)
-        m1.metric("Inbound Drop-off", (df["location"] == "Inbound Material").sum())
-        m2.metric("Ready for Eval", (df["location"] == "Ready for Evaluation").sum())
-        m3.metric("Customer Hold", (df["location"] == "Waiting for Customer Response").sum())
-        m4.metric("Active Bench / CalRig", df["location"].isin(["Flow Bench", "CalRig"]).sum())
+if nav == "🖥️ Operations Queue":
+    # Floating Center Container Columns [1, 10, 1]
+    col_pad_left, col_center, col_pad_right = st.columns([0.2, 10, 0.2])
 
-        st.markdown("<br>", unsafe_allow_html=True)
+    with col_center:
+        st.markdown(
+            """
+            <div style="background-color:#FFFFFF; border-left:8px solid #E30613; border:2px solid #E2E8F0; padding:18px 24px; border-radius:12px; margin-bottom:20px; box-shadow: 0 4px 12px rgba(0,0,0,0.03);">
+                <div style="font-size:1.6rem; font-weight:900; color:#0F172A; text-transform:uppercase;">OPERATIONS QUEUE & LAB COMMAND</div>
+                <div style="font-size:0.9rem; color:#475569; font-weight:600;">HYDAC Technology Corp — Live Physical Shelf Queue & Order Tracking</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-        c_search, c_shelf, c_tf = st.columns([2.5, 1.2, 1.2])
-        search = c_search.text_input("SEARCH QUEUE:", placeholder="RGA, Serial, Customer...")
-        shelf_f = c_shelf.selectbox("SHELF FILTER:", ["All Shelves"] + list(df["location"].unique()))
-        tf_f = c_tf.selectbox("STATUS FILTER:", ["All Statuses", "🟢 On Schedule", "🟡 Approaching SLA", "🔴 Late / Overdue"])
+        if df.empty:
+            st.info("Database empty. Use System Admin in the left menu to populate demo data.")
+        else:
+            m1, m2, m3, m4 = st.columns(4)
+            m1.metric("Inbound Drop-off", (df["location"] == "Inbound Material").sum())
+            m2.metric("Ready for Eval", (df["location"] == "Ready for Evaluation").sum())
+            m3.metric("Customer Hold", (df["location"] == "Waiting for Customer Response").sum())
+            m4.metric("Active Bench / CalRig", df["location"].isin(["Flow Bench", "CalRig"]).sum())
 
-        filtered = df.copy()
-        if shelf_f != "All Shelves":
-            filtered = filtered[filtered["location"] == shelf_f]
-        if tf_f == "🟢 On Schedule":
-            filtered = filtered[filtered["timeframe_status"] == "GREEN"]
-        elif tf_f == "🟡 Approaching SLA":
-            filtered = filtered[filtered["timeframe_status"] == "YELLOW"]
-        elif tf_f == "🔴 Late / Overdue":
-            filtered = filtered[filtered["timeframe_status"] == "RED"]
+            st.markdown("<br>", unsafe_allow_html=True)
 
-        if search:
-            mask = filtered.astype(str).apply(lambda col: col.str.contains(search, case=False)).any(axis=1)
-            filtered = filtered[mask]
+            c_search, c_shelf, c_tf = st.columns([2.5, 1.2, 1.2])
+            search = c_search.text_input("SEARCH QUEUE:", placeholder="Type RGA, Serial Number, or Customer...")
+            shelf_f = c_shelf.selectbox("SHELF FILTER:", ["All Shelves"] + list(df["location"].unique()))
+            tf_f = c_tf.selectbox("STATUS FILTER:", ["All Statuses", "🟢 On Schedule", "🟡 Approaching SLA", "🔴 Late / Overdue"])
 
-        st.markdown("### 📋 Active Request Queue")
+            filtered = df.copy()
+            if shelf_f != "All Shelves":
+                filtered = filtered[filtered["location"] == shelf_f]
+            if tf_f == "🟢 On Schedule":
+                filtered = filtered[filtered["timeframe_status"] == "GREEN"]
+            elif tf_f == "🟡 Approaching SLA":
+                filtered = filtered[filtered["timeframe_status"] == "YELLOW"]
+            elif tf_f == "🔴 Late / Overdue":
+                filtered = filtered[filtered["timeframe_status"] == "RED"]
 
-        for rga, group in filtered.groupby("rga_number"):
-            cust = group["customer_name"].iloc[0]
-            owner = ", ".join(group["assigned_to"].unique())
-            exp_header = f"RGA #{rga} — {cust} ({len(group)} Unit/s) | Assigned Owner: {owner}"
+            if search:
+                mask = filtered.astype(str).apply(lambda col: col.str.contains(search, case=False)).any(axis=1)
+                filtered = filtered[mask]
 
-            with st.expander(exp_header, expanded=False):
-                for _, item in group.iterrows():
-                    st.markdown('<div class="child-card">', unsafe_allow_html=True)
-                    col_info, col_shelf, col_act = st.columns([2.5, 1.6, 1.4])
+            st.markdown("### 📋 Active Request Queue")
 
-                    status = item["timeframe_status"]
-                    if status == "GREEN":
-                        pill = '<span class="pill-green">🟢 On Schedule (&lt; 4 wks)</span>'
-                    elif status == "YELLOW":
-                        pill = '<span class="pill-yellow">🟡 Approaching SLA (4-7 wks)</span>'
-                    else:
-                        pill = '<span class="pill-red">🔴 Late / Overdue (&gt; 8 wks)</span>'
+            for rga, group in filtered.groupby("rga_number"):
+                cust = group["customer_name"].iloc[0]
+                csr = group.get("csr_name", pd.Series(["N/A"])).iloc[0] or "N/A"
+                notif_num = group.get("notification_number", pd.Series(["N/A"])).iloc[0] or "N/A"
+                owner = ", ".join(group["assigned_to"].unique())
+                exp_header = f"RGA #{rga} — {cust} ({len(group)} Item/s) | Owner: {owner}"
 
-                    with col_info:
-                        st.markdown(f"**Unit ID #{item['id']}** &nbsp;&nbsp; {pill}", unsafe_allow_html=True)
-                        st.markdown(f"• **Model Series:** `{item.get('model_series') or 'None'}`")
-                        st.markdown(f"• **Serial Number:** `{item.get('serial_number') or 'None'}`")
-                        st.markdown(f"• **Notes Log:** {str(item.get('notes', 'None'))}")
+                with st.expander(exp_header, expanded=False):
+                    st.markdown(
+                        f"**Parent RGA:** `{rga}` &nbsp;|&nbsp; **Customer:** `{cust}` &nbsp;|&nbsp; "
+                        f"**CSR:** `{csr}` &nbsp;|&nbsp; **Notif #:** `{notif_num}` &nbsp;|&nbsp; "
+                        f"**Assigned Owner:** `{owner}`"
+                    )
+                    st.markdown("---")
 
-                    with col_shelf:
-                        st.markdown("**Shelf Location:**")
-                        st.write(f"Current Shelf: **{item['location']}**")
-                        new_s = st.selectbox(
-                            "Shift Shelf:",
-                            ["Inbound Material", "Ready for Evaluation", "Flow Bench", "CalRig", "Waiting for Customer Response", "Completed / Ready for Shipping"],
-                            index=["Inbound Material", "Ready for Evaluation", "Flow Bench", "CalRig", "Waiting for Customer Response", "Completed / Ready for Shipping"].index(item["location"]) if item["location"] in ["Inbound Material", "Ready for Evaluation", "Flow Bench", "CalRig", "Waiting for Customer Response", "Completed / Ready for Shipping"] else 1,
-                            key=f"sh_{item['id']}"
-                        )
-                        if new_s != item["location"]:
-                            if st.button("Apply Shift", key=f"btn_sh_{item['id']}"):
-                                update_location_and_status(item["id"], new_s)
-                                st.rerun()
+                    for _, item in group.iterrows():
+                        st.markdown('<div class="child-card">', unsafe_allow_html=True)
+                        col_info, col_shelf, col_act = st.columns([2.5, 1.6, 1.4])
 
-                    with col_act:
-                        st.markdown("**Actions:**")
-                        c_a1, c_a2, c_a3 = st.columns(3)
-                        with c_a1:
-                            if st.button("🖐️ Assign", key=f"cl_{item['id']}"):
-                                modal_claim(item["rga_number"], item["id"], item.get("assigned_to", "Unassigned"))
-                        with c_a2:
-                            if st.button("📷 Photos", key=f"p_{item['id']}"):
-                                modal_photos(item["id"], item.get("photo_path", ""))
-                        with c_a3:
-                            if st.button("💬 Notes", key=f"n_{item['id']}"):
-                                modal_notes(item["id"], item.get("notes", ""))
+                        status = item["timeframe_status"]
+                        if status == "GREEN":
+                            pill = '<span class="pill-green">🟢 On Schedule (&lt; 4 wks)</span>'
+                        elif status == "YELLOW":
+                            pill = '<span class="pill-yellow">🟡 Approaching SLA (4-7 wks)</span>'
+                        else:
+                            pill = '<span class="pill-red">🔴 Late / Overdue (&gt; 8 wks)</span>'
 
-                    st.markdown('</div>', unsafe_allow_html=True)
+                        with col_info:
+                            st.markdown(f"**Unit ID #{item['id']}** &nbsp;&nbsp; {pill}", unsafe_allow_html=True)
+                            st.markdown(f"• **Model Series:** `{item.get('model_series') or 'None'}`")
+                            st.markdown(f"• **Serial Number:** `{item.get('serial_number') or 'None'}`")
+                            st.markdown(f"• **Accessories:** `{item.get('accessories') or 'None'}`")
+                            st.markdown(f"• **Notes Log:** {str(item.get('notes', 'None'))}")
+
+                        with col_shelf:
+                            st.markdown("**Shelf Location:**")
+                            st.write(f"Current Shelf: **{item['location']}**")
+                            new_s = st.selectbox(
+                                "Shift Shelf:",
+                                ["Inbound Material", "Ready for Evaluation", "Flow Bench", "CalRig", "Waiting for Customer Response", "Completed / Ready for Shipping"],
+                                index=["Inbound Material", "Ready for Evaluation", "Flow Bench", "CalRig", "Waiting for Customer Response", "Completed / Ready for Shipping"].index(item["location"]) if item["location"] in ["Inbound Material", "Ready for Evaluation", "Flow Bench", "CalRig", "Waiting for Customer Response", "Completed / Ready for Shipping"] else 1,
+                                key=f"sh_{item['id']}"
+                            )
+                            if new_s != item["location"]:
+                                if st.button("Apply Shift", key=f"btn_sh_{item['id']}"):
+                                    update_location_and_status(item["id"], new_s)
+                                    st.rerun()
+
+                        with col_act:
+                            st.markdown("**Actions:**")
+                            c_a1, c_a2, c_a3 = st.columns(3)
+                            with c_a1:
+                                if st.button("🖐️ Assign", key=f"cl_{item['id']}"):
+                                    modal_claim(item["rga_number"], item["id"], item.get("assigned_to", "Unassigned"))
+                            with c_a2:
+                                if st.button("📷 Photos", key=f"p_{item['id']}"):
+                                    modal_photos(item["id"], item.get("photo_path", ""))
+                            with c_a3:
+                                if st.button("💬 Notes", key=f"n_{item['id']}"):
+                                    modal_notes(item["id"], item.get("notes", ""))
+
+                        st.markdown('</div>', unsafe_allow_html=True)
 
 # =========================================================
 # MODULE 2: PHASE 1 INBOUND INTAKE
@@ -700,7 +757,7 @@ elif nav == "📥 Phase 1: Inbound Intake":
             model = ca.text_input("Model Series*:")
             sn = cb.text_input("Serial Number*:")
             vis = st.text_area("Visual Inspection Notes:")
-            tech = st.selectbox("Assign Tech:", ["Unassigned", "Geo Hall", "Adam K", "New Guy"])
+            tech = st.selectbox("Assign Tech:", ["Unassigned", "Geo H", "Adam K", "New Guy"])
 
             if st.form_submit_button("🚀 Submit Intake", type="primary"):
                 accs = []
@@ -776,15 +833,15 @@ elif nav == "⏱️ Customer Hold Tracker":
                     st.rerun()
 
 # =========================================================
-# MODULE 5: SYSTEM ADMIN & EXCEL EXPORT
+# MODULE 5: SYSTEM ADMIN & DEMO RESET
 # =========================================================
 else:
     st.subheader("🛠️ System Admin Tools")
     c1, c2 = st.columns(2)
     with c1:
-        if st.button("🌱 Execute Database Reset & Demo Seed", type="primary"):
+        if st.button("🌱 Execute Database Reset & Seed Demo Data", type="primary"):
             reset_and_seed_db()
-            st.toast("Database Reset Done!", icon="🌱")
+            st.toast("Database Reset & Demo Data Loaded!", icon="🌱")
             st.rerun()
 
     with c2:
